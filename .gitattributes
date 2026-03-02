@@ -1,0 +1,8 @@
+# Handle line endings automatically for all text files
+* text=auto eol=lf
+# Explicitly ensure code and build files stay LF
+*.c text eol=lf
+*.h text eol=lf
+*.s text eol=lf
+Makefile text eol=lf
+*.py text eol=lf
