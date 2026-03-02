@@ -73,8 +73,11 @@
     #include <trcRecorder.h>
 #endif
 
+#define    USER_DEMO      2
+
 #define    BLINKY_DEMO    0
 #define    FULL_DEMO      1
+#define    BMS_TEST       2 
 
 #ifdef BUILD_DIR
     #define BUILD         BUILD_DIR
@@ -95,7 +98,9 @@
 
 extern void main_blinky( void );
 extern void main_full( void );
+extern int bms_test_main(void);
 static void traceOnEnter( void );
+
 
 /*
  * Only the comprehensive demo uses application hook (callback) functions.  See
@@ -151,7 +156,6 @@ int main( void )
 {
     /* SIGINT is not blocked by the posix port */
     signal( SIGINT, handle_sigint );
-
     #if ( projENABLE_TRACING == 1 )
     {
         /* Initialise the trace recorder.  Use of the trace recorder is optional.
@@ -178,6 +182,12 @@ int main( void )
     {
         console_print( "Starting full demo\n" );
         main_full();
+    }
+    #elif ( mainSELECTED_APPLICATION == BMS_TEST )
+    {
+        console_print("Starting BMS test in main\n");
+        int ret = bms_test_main();
+        console_print("Func returned: %d\n", ret);
     }
     #else
     {

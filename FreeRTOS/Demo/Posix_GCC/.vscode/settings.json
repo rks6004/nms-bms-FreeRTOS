@@ -21,4 +21,6 @@
         }
     },
     "terminal.integrated.defaultProfile.windows": "MSYS2",
+    "files.eol": "\n",
+    "diffEditor.ignoreTrimWhitespace": true
 }
