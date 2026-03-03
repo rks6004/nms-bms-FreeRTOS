@@ -47,7 +47,7 @@ __pycache__/
 # Ignore Visual Studio user files
 *.suo
 *.vcxproj.user
-*/settings.json
+*/.vscode/*
 
 # Atmel Studio user files
 *.atsuo
