@@ -73,8 +73,6 @@
     #include <trcRecorder.h>
 #endif
 
-#define    USER_DEMO      2
-
 #define    BLINKY_DEMO    0
 #define    FULL_DEMO      1
 #define    BMS_TEST       2 
@@ -85,7 +83,7 @@
     #define BUILD         "./"
 #endif
 
-/* Demo type is passed as an argument */
+/* Demo type is passed as an argument when building */
 #ifdef USER_DEMO
     #define     mainSELECTED_APPLICATION    USER_DEMO
 #else /* Default Setting */
