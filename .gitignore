@@ -60,5 +60,6 @@ __pycache__/
 # Renesas IDE temporary files
 *.nav
 
-#ignore files related to hv-bms code itself, code is added as reference
+#ignore files not added through Git, but rather manually
 hv-bms/
+FreeRTOS/Source/

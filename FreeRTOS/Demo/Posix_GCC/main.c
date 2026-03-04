@@ -73,6 +73,7 @@
     #include <trcRecorder.h>
 #endif
 
+#define    USER_DEMO      2
 #define    BLINKY_DEMO    0
 #define    FULL_DEMO      1
 #define    BMS_TEST       2 

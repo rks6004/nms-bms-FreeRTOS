@@ -106,15 +106,13 @@ ifdef SANITIZE_LEAK
   LDFLAGS             +=   -fsanitize=leak
 endif
 
-# ifeq ($(USER_DEMO),BLINKY_DEMO)
-#   CPPFLAGS            +=   -DUSER_DEMO=0
-# endif
+ifeq ($(USER_DEMO),BLINKY_DEMO)
+  CPPFLAGS            +=   -DUSER_DEMO=0
+endif
 
-# ifeq ($(USER_DEMO),FULL_DEMO)
-#   CPPFLAGS            +=   -DUSER_DEMO=1
-# endif
-
-CPPFLAGS += -DUSER_DEMO=USER_DEMO
+ifeq ($(USER_DEMO),FULL_DEMO)
+  CPPFLAGS            +=   -DUSER_DEMO=1
+endif
 
 OBJ_FILES = $(SOURCE_FILES:%.c=$(BUILD_DIR)/%.o)
 
