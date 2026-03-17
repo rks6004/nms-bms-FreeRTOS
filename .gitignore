@@ -61,5 +61,10 @@ __pycache__/
 *.nav
 
 #ignore files not added through Git, but rather manually
+#added exception for hv-bms OS files
 hv-bms/
+!hv-bms/Core/
+!hv-bms/Drivers_Custom/
 FreeRTOS/Source/
+
+

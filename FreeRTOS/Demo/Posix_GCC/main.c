@@ -74,6 +74,7 @@
 #endif
 
 #define    USER_DEMO      2
+
 #define    BLINKY_DEMO    0
 #define    FULL_DEMO      1
 #define    BMS_TEST       2 
@@ -172,6 +173,7 @@ int main( void )
     #endif /* if ( projENABLE_TRACING == 1 ) */
 
     console_init();
+    printf("Selected Demo is %d\n", mainSELECTED_APPLICATION);
     #if ( mainSELECTED_APPLICATION == BLINKY_DEMO )
     {
         console_print( "Starting echo blinky demo\n" );
