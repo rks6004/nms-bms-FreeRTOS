@@ -2,27 +2,28 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <errno.h>
+#include <unistd.h>
 
 /* Local includes. */
 
 int test_stream_read(void* filepath) {
-    printf("Using filepath: %s\n", filepath);
-    // const char* filepath_stable = (char*)filepath;
+    printf("Using filepath: %s\n", (char*)filepath);
     FILE* fptr; 
     fptr = fopen(filepath, "r");
-    // printf("File at: %p\n", fptr);
     if (fptr != NULL) {
         size_t bytes_to_read = 20;
-        char rptr[bytes_to_read];
-        int ret = fread(rptr, sizeof(char), bytes_to_read, fptr);
-        // printf("Successfully retrieved %d bytes from file.\n", (int)ret);
+        size_t bytes_to_read_actual = bytes_to_read;
+        char rptr[bytes_to_read_actual];
+        int ret = fread(rptr, sizeof(char), bytes_to_read_actual, fptr);
         int i = 0;
         char this_char = rptr[i];
-        while (this_char != NULL && this_char != "\0" && i < bytes_to_read) {
-            printf("Read: %s\n", &this_char);
+        while (this_char != EOF && i < bytes_to_read_actual) {
+            printf("Read: %c\n", this_char);
             i += 2;
             this_char = rptr[i];
         }
+        fclose(fptr);
+        fptr = NULL;
         return 0;
     }
     else {
@@ -30,4 +31,7 @@ int test_stream_read(void* filepath) {
         return -1;
     }
 }
+
+
+
 

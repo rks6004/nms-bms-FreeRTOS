@@ -114,6 +114,10 @@ ifeq ($(USER_DEMO),FULL_DEMO)
   CPPFLAGS            +=   -DUSER_DEMO=1
 endif
 
+ifeq ($(USER_DEMO),BMS_TEST)
+  CPPFLAGS            +=   -DUSER_DEMO=2
+endif
+
 ifdef DEBUG
   CFLAGS             :=  -ggdb3 -O0 -fno-omit-frame-pointer
   LDFLAGS            :=  -ggdb3

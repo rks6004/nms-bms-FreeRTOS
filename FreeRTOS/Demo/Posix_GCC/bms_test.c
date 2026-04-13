@@ -8,14 +8,29 @@
 #include "semphr.h"
 
 /* Local includes. */
-#include "console.h" 
+#include "console.h"
+#include "stdlib.h"
+
+/*  BMS Includes */
+
 
 extern int test_stream_read(void* filepath);
 
-//overall function for bms main tester
-int bms_test_main(void) {
+int bms_file_reading_test(void) {
     console_print("Starting the BMS test in specific code.\n");
-    int ret = test_stream_read("./test_data_streams/read_test\0");
+    int ret = test_stream_read("./read_test");
     return ret;
+}
+
+int bms_task_tester(void* data) {
+    console_print("%d\n", *(int*)data);
+    return 0;
+}
+
+
+
+int cell_voltage_test(void) {
+
+
 }
 

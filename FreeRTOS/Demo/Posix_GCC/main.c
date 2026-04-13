@@ -73,8 +73,6 @@
     #include <trcRecorder.h>
 #endif
 
-#define    USER_DEMO      2
-
 #define    BLINKY_DEMO    0
 #define    FULL_DEMO      1
 #define    BMS_TEST       2 
@@ -98,7 +96,8 @@
 
 extern void main_blinky( void );
 extern void main_full( void );
-extern int bms_test_main(void);
+extern int bms_file_reading_test(void);
+extern int bms_task_tester(void);
 static void traceOnEnter( void );
 
 
@@ -184,11 +183,12 @@ int main( void )
         console_print( "Starting full demo\n" );
         main_full();
     }
-    #elif ( mainSELECTED_APPLICATION == BMS_TEST )
+    #elif ( mainSELECTED_APPLICATION == BMS_TEST)
     {
         console_print("Starting BMS test in main\n");
-        int ret = bms_test_main();
+        int ret = bms_file_reading_test();
         console_print("Func returned: %d\n", ret);
+        
     }
     #else
     {
