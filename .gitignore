@@ -60,11 +60,12 @@ __pycache__/
 # Renesas IDE temporary files
 *.nav
 
-#ignore files not added through Git, but rather manually
-#added exception for hv-bms OS files
-hv-bms/
-!hv-bms/Core/
-!hv-bms/Drivers_Custom/
+FreeRTOS/Demo/
 FreeRTOS/Source/
 
-
+hv-bms/*
+!hv-bms/Makefile
+!hv-bms/Core/
+!hv-bms/Drivers_Custom/
+!hv-bms/nms_wrappers/
+!hv-bms/README.md

@@ -1,0 +1,54 @@
+{
+	"description" : "JSON generated from a CAN DBC file",
+	"compiler" : "dbcc",
+	"site" : "https://github.com/howerj/dbcc",
+	"messages" : [
+		{
+			"name" : "BMS_Charger_Control",
+			"id" : 403105268,
+			"extended" : true,
+			"dlc" : 5,
+			"signals": [
+				{
+					"name" : "Charger_Max_Voltage",
+					"startbit" : 7,
+					"bitlength" : 16,
+					"endianess" : "motorola",
+					"scaling" : 1,
+					"offset" : 0,
+					"minimum" : 0,
+					"maximum" : 0,
+					"signed" : true,
+					"floating" : 0,
+					"units" : ""
+				},
+				{
+					"name" : "Charger_Max_Current",
+					"startbit" : 23,
+					"bitlength" : 16,
+					"endianess" : "motorola",
+					"scaling" : 1,
+					"offset" : 0,
+					"minimum" : 0,
+					"maximum" : 0,
+					"signed" : true,
+					"floating" : 0,
+					"units" : ""
+				},
+				{
+					"name" : "Charger_Control",
+					"startbit" : 39,
+					"bitlength" : 8,
+					"endianess" : "motorola",
+					"scaling" : 1,
+					"offset" : 0,
+					"minimum" : 0,
+					"maximum" : 0,
+					"signed" : false,
+					"floating" : 0,
+					"units" : ""
+				}
+			]
+		}
+	]
+}
