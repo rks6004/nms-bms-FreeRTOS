@@ -4,13 +4,17 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdint.h>
-#include "bms_test.h"
+#include <math.h>
 
+#include "bms_test.h"
+#include "main.h"
 //Analog-Devices-related includes
 #include "adBms6830Driver.h"
 #include "adBms6830Data.h"
 
-//Defines
+//DEFINES
+
+//many of these will be derived from command-line arguments
 #ifndef VOLTAGE_TEST
     #define VOLTAGE_TEST VOLT_NORMAL
 #endif
@@ -27,44 +31,99 @@
     #define PEC_TEST PEC_NORMAL
 #endif
 
-enum VOLTAGE_STATE {
-    VOLT_NORMAL = 0,
-    VOLT_OV_BRIEF,
-    VOLT_UV_BRIEF,
-    VOLT_OV_CONSISTENT,
-    VOLT_UV_CONSISTENT
+#define OPTIMAL_CELL_VOLTAGE 4.15 //V
+#define OPTIMAL_CELL_TEMP 25 //deg C, picking ~ambient temp
+#define OPTIMAL_ERROR_COUNT 0
+
+
+/* ============================================================================
+ * VOLTAGE CONVERSION MACROS
+ * ============================================================================
+ * Reverse of get_voltage(): adc_code = (voltage / 0.000150) - 10000
+ */
+
+/**
+ * @brief Convert voltage (float) to int16_t ADC code
+ * @param voltage_v Voltage in volts (e.g., 4.0 for 4.0V)
+ * @return int16_t ADC code to be stored in acv_.ac_codes[]
+ * 
+ * Example:
+ *   int16_t adc = VOLTAGE_TO_ADC_CODE(4.15);  // Returns 17667
+ *   ic[0].acell.ac_codes[0] = adc;
+ */
+#define VOLTAGE_TO_ADC_CODE(voltage_v) \
+  ((int16_t)(((voltage_v) / 0.000150) - 10000))
+
+/**
+ * @brief Convert voltage (float) to unsigned 16-bit for byte extraction
+ * @param voltage_v Voltage in volts
+ * @return uint16_t ADC code (unsigned representation)
+ */
+#define VOLTAGE_TO_ADC_UNSIGNED(voltage_v) \
+  ((uint16_t)VOLTAGE_TO_ADC_CODE(voltage_v))
+
+/**
+ * @brief Extract LSB from voltage
+ * @param voltage_v Voltage in volts
+ * @return uint8_t Least significant byte (data[0] in SPI register)
+ */
+#define VOLTAGE_TO_LSB(voltage_v) \
+  ((uint8_t)(VOLTAGE_TO_ADC_UNSIGNED(voltage_v) & 0xFF))
+
+/**
+ * @brief Extract MSB from voltage
+ * @param voltage_v Voltage in volts
+ * @return uint8_t Most significant byte (data[1] in SPI register)
+ */
+#define VOLTAGE_TO_MSB(voltage_v) \
+  ((uint8_t)((VOLTAGE_TO_ADC_UNSIGNED(voltage_v) >> 8) & 0xFF))
+
+
+/*
+====================================
+SAMPLE SEGMENT STRUCTS FOR TESTING
+====================================
+*/
+
+const int16_t optimal_cell_voltage_adc = VOLTAGE_TO_ADC_CODE(OPTIMAL_CELL_VOLTAGE);
+//4.15 V across all cells in segment when translated
+const extern acv_ optimal_voltages = {
+    .ac_codes = {
+        optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //A
+        optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //B
+        optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //C
+        optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //D
+        optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //E
+        optimal_cell_voltage_adc                                                      //F
+    }
 };
 
-enum TEMP_STATE {
-    TEMP_NORMAL = 0,
-    TEMP_OT_BRIEF,
-    TEMP_UT_BRIEF,
-    TEMP_OT_CONSISTENT,
-    TEMP_UT_CONSISTENT
+const extern cell_temps_ optimal_temps = {
+    .cell_temps = {
+        (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, //A
+        (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, //B
+        (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, //C
+        (float)OPTIMAL_CELL_TEMP                                                      //D 
+    }
 };
 
-//may need to go in 2950 code instead
-enum CURRENT_STATE {
-    CURR_NORMAL = 0,
-    CURR_OC_BRIEF,
-    CURR_UC_BRIEF,
-    CURR_OC_CONSISTENT,
-    CURR_UC_CONSISTENT
+const int16_t optimal_cell_temp_adc = 0; //derived from OPTIMAL_CELL_TEMP, but calculated seperately due to inability to use math functions in precompilation
+const extern ax_ optimal_temps_adcs = {
+    .a_codes = {
+        optimal_cell_temp_adc, optimal_cell_temp_adc, optimal_cell_temp_adc,    //A
+        optimal_cell_temp_adc, optimal_cell_temp_adc, optimal_cell_temp_adc,    //B
+        optimal_cell_temp_adc, optimal_cell_temp_adc, optimal_cell_temp_adc,    //C
+        optimal_cell_temp_adc, optimal_cell_temp_adc, optimal_cell_temp_adc     //D
+    }
 };
 
-enum PEC_STATE {
-    PEC_NORMAL = 0,
-    PEC_SLIGHT_INTEFERENCE,
-    PEC_HEAVY_INTERFERENCE
-};
+void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP group);
+
+void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP group);
+
+void adBms6830_populate_cell_temps_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP group);
 
 
 
 
-
-void adBms6830_init_config_testbench(uint8_t tIC, cell_asic_6830 *ic);
-
-void spiReadData_testbench(uint8_t tIC, uint8_t tx_cmd[2], 
-                            uint8_t *rx_data, uint8_t *pec_error, 
-                            uint8_t *cmd_cntr, uint8_t regData_size);
 

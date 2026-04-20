@@ -27,6 +27,46 @@
 extern "C" {
 #endif
 
+
+// Flags to synchronize RTOS tasks based on charging or discharging operation of the BMS
+#define EVENT_FLAG_CHARGING_DISABLE 0x01U
+#define EVENT_FLAG_CHARGING_ENABLE  0x02U
+
+// Flags to keep track of current BMS operating mode (charge vs. discharge)
+#define BMS_MODE_DISCHARGE 0
+#define BMS_MODE_CHARGE    1
+
+// Flags to keep track of when discharge mode is enabled to send configuration registers to ADBMS6830
+#define DISCHARGE_REGULAR_OPERATION 0
+#define DISCHARGE_JUST_ENABLED      1
+
+// Flags to keep track of when charge mode is enabled to send configuration registers to ADBMS6830
+#define CHARGE_REGULAR_OPERATION 0
+#define CHARGE_JUST_ENABLED      1
+
+#define ADBMS_6830_IC_NUM 7
+#define ADBMS_2950_IC_NUM 1
+
+// Cell maximum settings
+#define MAX_CELL_VOLTAGE 4.2
+#define MIN_CELL_VOLTAGE 2.7
+#define MAX_TEMP         60
+#define MIN_TEMP         -20
+#define MAX_CURRENT      600
+
+// Charging logic variables
+#define TAPER_CURRENT 0.150 // End of charge current in Amps
+#define CELL_COUNT                                                                                 \
+  ((ADBMS_6830_IC_NUM - ADBMS_2950_IC_NUM) * CELL) // Example cell count, adjust as necessary
+#define CHARGING_TEMP_THRESH     45
+#define FULL_CHARGE_RATE_OK_VOLT 3.2
+#define FULL_CHARGE_RATE_OK_TEMP 20
+#define CHARGE_START_OK_TEMP     5
+#define CHARGE_CV_VALUE          (MAX_CELL_VOLTAGE - 0.015)
+
+// PEC Error Added
+#define PEC_ERROR_LIMIT 5
+
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 

@@ -19,8 +19,7 @@
 /* USER CODE END Header */
 
 /* USER CODE BEGIN Includes */
-
-
+#include "bms_util.h"
 #include "adBms2950Driver.h"
 #include "adBms6830Driver.h"
 #include "adBms6830PrintResult.h"
@@ -30,17 +29,18 @@
 
 #include "stm32f4xx_it.h"
 #include "cmsis_os.h"
-#include "can.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
+#else
+#include "adBms6830_TESTBENCH.h"
 #endif
 
 #include "main.h"
 
-//should pull from appropriate header areas depending on TESTBENCH flag
+//should pull from appropriate header areas depending on TESTBENCH flag in Makefile
 #include "FreeRTOS.h"
 #include "event_groups.h"
 #include "semphr.h"
@@ -59,30 +59,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define TESTBENCH 1 //remove this before project is able to build independently
 
-#define ADBMS_6830_IC_NUM 7
-#define ADBMS_2950_IC_NUM 1
 
-// Cell maximum settings
-#define MAX_CELL_VOLTAGE 4.2
-#define MIN_CELL_VOLTAGE 2.7
-#define MAX_TEMP         60
-#define MIN_TEMP         -20
-#define MAX_CURRENT      600
-
-// Charging logic variables
-#define TAPER_CURRENT 0.150 // End of charge current in Amps
-#define CELL_COUNT                                                                                 \
-  ((ADBMS_6830_IC_NUM - ADBMS_2950_IC_NUM) * CELL) // Example cell count, adjust as necessary
-#define CHARGING_TEMP_THRESH     45
-#define FULL_CHARGE_RATE_OK_VOLT 3.2
-#define FULL_CHARGE_RATE_OK_TEMP 20
-#define CHARGE_START_OK_TEMP     5
-#define CHARGE_CV_VALUE          (MAX_CELL_VOLTAGE - 0.015)
-
-// PEC Error Added
-#define PEC_ERROR_LIMIT 5
 
 // 5 minutes in milliseconds
 #define DCTO_TICKS pdMS_TO_TICKS(5 * 60 * 1000)
@@ -90,6 +68,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+#ifndef TESTBENCH
 #define SET_FAULT_SIG(fault, ic)                                                                   \
   do                                                                                               \
   {                                                                                                \
@@ -118,6 +97,15 @@
     taskEXIT_CRITICAL();                                                                           \
     bmsFault();                                                                                    \
   } while (0);                                                                                     
+#else
+#define SET_FAULT_SIG(fault, ic)                                                                   \
+  do                                                                                               \
+  {                                                                                                \
+    taskENTER_CRITICAL();                                                                          \
+    bmsFault();                                                                                    \ 
+    taskEXIT_CRITICAL();                                                                           \
+  } while (0);
+#endif
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -151,6 +139,14 @@ typedef enum
 
 SemaphoreHandle_t bmsMutexHandle;
 TimerHandle_t faultLatchTimerHandle;
+
+
+// Flag to keep track of charging enabled
+EventGroupHandle_t charging_evt_id;
+
+int bmsMode = BMS_MODE_DISCHARGE;
+int chargingJustEnabled = CHARGE_REGULAR_OPERATION;
+int dischargingJustEnabled = DISCHARGE_REGULAR_OPERATION;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -232,10 +228,15 @@ void chargeController(void)
 
   // Take mutex to safely access shared BMS data
   taskENTER_CRITICAL();
+  #ifndef TESTBENCH
   decode_can_0x4c4_Max_Voltage(canBuses[VEHICLE_CAN].converter, &maxVoltage);
   decode_can_0x4c4_Min_Voltage(canBuses[VEHICLE_CAN].converter, &minVoltage);
   decode_can_0x4c5_Max_Temperature(canBuses[VEHICLE_CAN].converter, &maxTemperature);
   decode_can_0x4c5_Min_Temperature(canBuses[VEHICLE_CAN].converter, &minTemperature);
+  #else
+  maxVoltage = MAX_CELL_VOLTAGE - 0.5;
+  minVoltage = maxVoltage - 0.5; 
+  #endif
   taskEXIT_CRITICAL();
 
   // Check for faults
@@ -320,6 +321,7 @@ void chargeController(void)
   }
 
   // Send CAN messages
+  #ifndef TESTBENCH
   taskENTER_CRITICAL();
   encode_can_0x1806e5f4_Charger_Max_Voltage(canBuses[CHARGER_CAN].converter, (chargeVoltage));
   encode_can_0x1806e5f4_Charger_Max_Current(canBuses[CHARGER_CAN].converter, (chargeCurrent));
@@ -327,6 +329,8 @@ void chargeController(void)
   taskEXIT_CRITICAL();
 
   packCanTx(CAN_ID_BMS_CHARGER_CONTROL, CHARGER_CAN);
+  #else
+  #endif
 }
 
 /**
@@ -334,7 +338,11 @@ void chargeController(void)
  */
 void bmsFaultLatch(void)
 {
+  #ifndef TESTBENCH
   HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_RESET);
+  #else
+  printf("BMS Fault Latch Pulled!\n");
+  #endif
 }
 
 /**
@@ -345,8 +353,14 @@ void bmsFault(void)
   uint8_t inverterState = 0;
 
   taskENTER_CRITICAL();
+  #ifndef TESTBENCH
   decode_can_0x0c0_Inverter_Enable(canBuses[VEHICLE_CAN].converter, &inverterState);
+  #endif
   taskEXIT_CRITICAL();
+  
+  #ifdef TESTBENCH
+  printf("Inverter Disabled due to BMS Fault\n");
+  #endif
 
   if (inverterState == 0)
   {
@@ -461,7 +475,10 @@ void adbms2950_pack_oc_check(void)
   if (current > MAX_CURRENT)
   {
     taskENTER_CRITICAL();
+    #ifndef TESTBENCH
     encode_can_0x0c3_PACKOC(canBuses[VEHICLE_CAN].converter, 1);
+    #else
+    #endif
     taskEXIT_CRITICAL();
     bmsFault();
   }
@@ -491,7 +508,10 @@ void checkBMSFaults(void)
     xSemaphoreGive(bmsMutexHandle);
   }
 
+  #ifndef TESTBENCH
   packCanTx(CAN_ID_BMS_FAULT, VEHICLE_CAN);
+  #else
+  #endif
 }
 
 /**
@@ -526,8 +546,11 @@ void adBms6830_get_voltage_data(void)
       {
         maxVoltage = voltage;
         taskENTER_CRITICAL();
+        #ifndef TESTBENCH
         encode_can_0x4c4_Max_Voltage_Location(canBuses[VEHICLE_CAN].converter,
                                               ((curr_ic - ADBMS_2950_IC_NUM) * 16) + i + 1);
+        #else
+        #endif
         taskEXIT_CRITICAL();
       }
 
@@ -536,8 +559,11 @@ void adBms6830_get_voltage_data(void)
       {
         minVoltage = voltage;
         taskENTER_CRITICAL();
+        #ifndef TESTBENCH
         encode_can_0x4c4_Min_Voltage_Location(canBuses[VEHICLE_CAN].converter,
                                               ((curr_ic - ADBMS_2950_IC_NUM) * 16) + i + 1);
+        #else
+        #endif
         taskEXIT_CRITICAL();
       }
 
@@ -548,8 +574,11 @@ void adBms6830_get_voltage_data(void)
 #if (ADBMS_2950_IC_NUM <= 0)
   // Without pack monitor, use the sum of all cell voltages to compute pack data
   taskENTER_CRITICAL();
+  #ifndef TESTBENCH
   encode_can_0x4c6_Pack_Voltage(canBuses[VEHICLE_CAN].converter, (double)avgVoltage);
   encode_can_0x4c6_Pack_Current(canBuses[VEHICLE_CAN].converter, (double)0);
+  #else
+  #endif
   taskEXIT_CRITICAL();
 #endif // ADBMS_2950_IC_NUM <= 0
 
@@ -558,9 +587,12 @@ void adBms6830_get_voltage_data(void)
 
   // Send max, min, and average over CAN
   taskENTER_CRITICAL();
+  #ifndef TESTBENCH
   encode_can_0x4c4_Max_Voltage(canBuses[VEHICLE_CAN].converter, (double)maxVoltage);
   encode_can_0x4c4_Min_Voltage(canBuses[VEHICLE_CAN].converter, (double)minVoltage);
   encode_can_0x4c4_Avg_Voltage(canBuses[VEHICLE_CAN].converter, (double)avgVoltage);
+  #else
+  #endif
   taskEXIT_CRITICAL();
 }
 
@@ -593,8 +625,11 @@ void adBms6830_get_temperature_data(void)
       {
         maxTemperature = temperature;
         taskENTER_CRITICAL();
+        #ifndef TESTBENCH
         encode_can_0x4c5_Max_Temperature_Location(canBuses[VEHICLE_CAN].converter,
                                                   ((curr_ic - ADBMS_2950_IC_NUM) * 16) + temp + 1);
+        #else
+        #endif
         taskEXIT_CRITICAL();
       }
 
@@ -603,8 +638,11 @@ void adBms6830_get_temperature_data(void)
       {
         minTemperature = temperature;
         taskENTER_CRITICAL();
+        #ifndef TESTBENCH
         encode_can_0x4c5_Min_Temperature_Location(canBuses[VEHICLE_CAN].converter,
                                                   ((curr_ic - ADBMS_2950_IC_NUM) * 16) + temp + 1);
+        #else
+        #endif
         taskEXIT_CRITICAL();
       }
 
@@ -617,9 +655,12 @@ void adBms6830_get_temperature_data(void)
 
   // Send max, min, and average over CAN
   taskENTER_CRITICAL();
+  #ifndef TESTBENCH
   encode_can_0x4c5_Max_Temperature(canBuses[VEHICLE_CAN].converter, (double)maxTemperature);
   encode_can_0x4c5_Min_Temperature(canBuses[VEHICLE_CAN].converter, (double)minTemperature);
   encode_can_0x4c5_Avg_Temperature(canBuses[VEHICLE_CAN].converter, (double)avgTemperature);
+  #else
+  #endif
   taskEXIT_CRITICAL();
 }
 
@@ -633,8 +674,11 @@ void adBms2950_get_data(void)
 
   // Send pack data over CAN
   taskENTER_CRITICAL();
+  #ifndef TESTBENCH
   encode_can_0x4c6_Pack_Voltage(canBuses[VEHICLE_CAN].converter, (double)voltage);
   encode_can_0x4c6_Pack_Current(canBuses[VEHICLE_CAN].converter, (double)current);
+  #else
+  #endif
   taskEXIT_CRITICAL();
 }
 #endif // ADBMS_2950_IC_NUM > 0
@@ -649,7 +693,10 @@ void checkAcellPEC(void)
       if (acellPecErrorCount[curr_ic] == PEC_ERROR_LIMIT)
       {
         taskENTER_CRITICAL();
+        #ifndef TESTBENCH
         encode_can_0x0c3_PEC_ERROR(canBuses[VEHICLE_CAN].converter, 1);
+        #else
+        #endif
         taskEXIT_CRITICAL();
         bmsFault();
       }
@@ -671,7 +718,10 @@ void checkAuxPEC(void)
       if (auxPecErrorCount[curr_ic] == PEC_ERROR_LIMIT)
       {
         taskENTER_CRITICAL();
+        #ifndef TESTBENCH
         encode_can_0x0c3_PEC_ERROR(canBuses[VEHICLE_CAN].converter, 1);
+        #else
+        #endif
         taskEXIT_CRITICAL();
         bmsFault();
       }
@@ -693,9 +743,12 @@ void bmsDataCanTxTask(void *argument)
   // Infinite loop
   for (;;)
   {
+    #ifndef TESTBENCH
     packCanTx(CAN_ID_BMS_VOLTAGE_DATA, VEHICLE_CAN);
     packCanTx(CAN_ID_BMS_TEMPERATURE_DATA, VEHICLE_CAN);
     packCanTx(CAN_ID_BMS_PACK_DATA, VEHICLE_CAN);
+    #else
+    #endif
 
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
@@ -728,20 +781,24 @@ void dischargingTask(void *argument)
 #if (ADBMS_2950_IC_NUM > 0) // Conditional init dependent on number of pack monitors
         // Initialize ADBMS2950 configuration
         adBms2950_init_config(ADBMS_2950_IC_NUM, &ADBMS_2950_IC[0]);
+        #ifndef TESTBENCH //no need to send configuration to emulated registers
         // Write configurations to both chips
         adBmsCommonWriteConfig(ADBMS_6830_IC_NUM,
                                ADBMS_2950_IC_NUM,
                                &ADBMS_6830_IC[0],
                                &ADBMS_2950_IC[0]);
+        #endif
 #else  // !(ADBMS_2950_IC_NUM > 0)
+        #ifndef TESTBENCH //no need to send configuration to emulated registers
         adBmsWakeupIc(ADBMS_6830_IC_NUM);
         adBms6830WriteData(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0], WRCFGA, Config, A);
         adBms6830WriteData(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0], WRCFGB, Config, B);
+        #endif
 #endif // (ADBMS_2950_IC_NUM > 0)
-
+        #ifndef TESTBENCH //no need to send configuration to emulated registers
         // Function call to send commands to the ADBMS6830 to initialize continuous measurement
         adBms6830_init_measurements(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
-
+        #endif
         // Reset dischargingJustEnabled flag as the configuration only needs to be set once
         // Only move on to regular operation after we successfully configured the ICs
         dischargingJustEnabled = DISCHARGE_REGULAR_OPERATION;
@@ -750,7 +807,9 @@ void dischargingTask(void *argument)
     }
     if (xSemaphoreTake(bmsMutexHandle, pdMS_TO_TICKS(10)))
     {
+      #ifndef TESTBENCH
       adBmsWakeupIc(ADBMS_6830_IC_NUM);
+      #endif
       // Measure all average cell voltage registers
       adBms6830_read_avgcell_voltages(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
       // Start auxiliary voltage measurements
@@ -759,6 +818,12 @@ void dischargingTask(void *argument)
       adBms6830_read_aux_voltages(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
       // Convert thermistor voltage to temperature
       adBms6830_populate_cell_temps(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
+
+      // adBms6830_read_avgcell_voltages_testbench(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
+      // adBms6830_read_aux_voltages_testbench(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0], A)
+      // adBms6830_populate_cell_temps_testbench(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
+
+
 
 #if (ADBMS_2950_IC_NUM > 0)
       // Read pack voltage and current from ADBMS2950
@@ -919,10 +984,11 @@ void peripheralsInit(void)
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   MX_TIM2_Init();
-  #endif
+  HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_SET);
   canInit(CAN_TX_QUEUE_SIZE, CAN_RX_QUEUE_SIZE);
   setvbuf(stdin, NULL, _IONBF, 0);
-  HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_SET);
+  #endif
+
 }
 
 /**
@@ -964,7 +1030,9 @@ void mainTask(void *argument)
               NULL,
               PRIORITY_LOW,
               NULL);
-
+  #ifdef TESTBENCH
+    testbench_init();
+  #endif
   for (;;)
   {
     #ifndef TESTBENCH

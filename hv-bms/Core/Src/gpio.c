@@ -20,6 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "gpio.h"
+#include "main.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -87,12 +88,6 @@ void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 2 */
-// Flag to keep track of charging enabled
-EventGroupHandle_t charging_evt_id;
-
-int bmsMode = BMS_MODE_DISCHARGE;
-int chargingJustEnabled = CHARGE_REGULAR_OPERATION;
-int dischargingJustEnabled = DISCHARGE_REGULAR_OPERATION;
 
 /**
  * @brief GPIO Interrupt Function callback

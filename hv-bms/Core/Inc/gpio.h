@@ -36,21 +36,7 @@ extern "C" {
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN Private defines */
-// Flags to synchronize RTOS tasks based on charging or discharging operation of the BMS
-#define EVENT_FLAG_CHARGING_DISABLE 0x01U
-#define EVENT_FLAG_CHARGING_ENABLE  0x02U
 
-// Flags to keep track of current BMS operating mode (charge vs. discharge)
-#define BMS_MODE_DISCHARGE 0
-#define BMS_MODE_CHARGE    1
-
-// Flags to keep track of when discharge mode is enabled to send configuration registers to ADBMS6830
-#define DISCHARGE_REGULAR_OPERATION 0
-#define DISCHARGE_JUST_ENABLED      1
-
-// Flags to keep track of when charge mode is enabled to send configuration registers to ADBMS6830
-#define CHARGE_REGULAR_OPERATION 0
-#define CHARGE_JUST_ENABLED      1
 
 extern int chargingJustEnabled;
 extern int dischargingJustEnabled;

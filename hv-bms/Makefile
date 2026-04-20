@@ -124,7 +124,7 @@ Core/Src/main.c
 # binaries
 #######################################
 
-ifdef TESTBENCH
+ifndef TESTBENCH
 PREFIX = arm-none-eabi-
 else
 PREFIX =
@@ -186,7 +186,6 @@ C_DEFS =  \
 -DUSE_HAL_DRIVER \
 -DSTM32F446xx
 
-
 # AS includes
 AS_INCLUDES =  \
 -ICore/Inc
@@ -215,7 +214,8 @@ else
 #building for testbench simulator
 
 #C_DEFS likely will need to be updated w/ macros/const vars
-C_DEFS =
+C_DEFS = \
+-DTESTBENCH=1
 
 #have to include the POSIX flavor of FreeRTOS implementations
 C_INCLUDES = \
@@ -224,13 +224,12 @@ C_INCLUDES = \
 -Inms_wrappers/util \
 -Inms_wrappers/nms_wrappers/can_wrappers \
 -Inms_wrappers/adbms_drivers \
--IDrivers_Custom/ADBMS2950/lib/inc \
--IDrivers_Custom/ADBMS2950/program/inc \
--IDrivers_Custom/ADBMS6830/lib/inc \
--IDrivers_Custom/ADBMS6830/program/inc \
--IDrivers_Custom/ADBMS_common/inc \
--IDrivers_Custom/ADBMS_util/inc
-
+# -IDrivers_Custom/ADBMS2950/lib/inc \
+# -IDrivers_Custom/ADBMS2950/program/inc \
+# -IDrivers_Custom/ADBMS6830/lib/inc \
+# -IDrivers_Custom/ADBMS6830/program/inc \
+# -IDrivers_Custom/ADBMS_common/inc \
+# -IDrivers_Custom/ADBMS_util/inc
 
 endif
 
@@ -260,18 +259,20 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 # link script
 ifndef TESTBENCH
 LDSCRIPT = stm32f446retx_flash.ld
-
 # libraries
 LIBS = -lc -lm -lnosys 
-LIBDIR = 
+LIBDIR =
 LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
+else
+LIBS = -lpthread -lrt -lm
+LDFLAGS = $(LIBS)
 endif
 
 ifndef TESTBENCH
 # default action: build all
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
 else
-all: 
+all: $(BUILD_DIR)/$(TARGET).elf
 
 #######################################
 # build the application
@@ -291,20 +292,24 @@ endif
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 
+ifndef TESTBENCH
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
 	$(AS) -c $(CFLAGS) $< -o $@
 $(BUILD_DIR)/%.o: %.S Makefile | $(BUILD_DIR)
 	$(AS) -c $(CFLAGS) $< -o $@
+endif
 
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
 	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 	$(SZ) $@
 
+ifndef TESTBENCH
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(HEX) $< $@
 	
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
-	$(BIN) $< $@	
+	$(BIN) $< $@
+endif	
 	
 $(BUILD_DIR):
 	mkdir $@		

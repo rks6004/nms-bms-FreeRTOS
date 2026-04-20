@@ -23,6 +23,12 @@ Using the BMS Driver Application can:
 
 */
 #include "adBms6830GenericType.h"
+#include "bms_util.h"
+#include <stdint.h>
+
+#ifdef TESTBENCH
+#include "adBms6830_TESTBENCH.h"
+#endif
 
 /**
 *******************************************************************************
@@ -76,6 +82,7 @@ void spiSendCmd6830(uint8_t tx_cmd[2])
 */
 void adBms6830ReadData(uint8_t tIC, cell_asic_6830 *ic, uint8_t cmd_arg[2], TYPE type, GRP group)
 {
+  #ifndef TESTBENCH
   uint16_t rBuff_size;
   uint8_t regData_size;
   if(group == ALL_GRP)
@@ -307,6 +314,19 @@ void adBms6830ReadData(uint8_t tIC, cell_asic_6830 *ic, uint8_t cmd_arg[2], TYPE
   free(read_buffer);
   free(pec_error); 
   free(cmd_count); 
+  #else
+    switch (type) {
+      //retrieving rolling avg. of cells from last 8 samples
+      case AvgCell:
+        adBms6830_read_avgcell_voltages_testbench(tIC, ic, group);
+        break;
+      //retrieving voltage readings from temperature sensors
+      case Aux:
+        adBms6830_read_aux_voltages_testbench(tIC, ic, group);        
+        break;
+      //
+    }
+  #endif
 }
 /**
 *******************************************************************************

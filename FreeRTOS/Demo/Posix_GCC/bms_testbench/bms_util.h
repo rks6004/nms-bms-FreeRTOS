@@ -1,0 +1,1 @@
+#define TESTBENCH 1 //remove this before project is able to build independently

@@ -60,7 +60,6 @@ __pycache__/
 # Renesas IDE temporary files
 *.nav
 
-FreeRTOS/Demo/
 FreeRTOS/Source/
 
 hv-bms/*

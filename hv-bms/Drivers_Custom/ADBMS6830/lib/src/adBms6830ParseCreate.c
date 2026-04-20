@@ -377,7 +377,7 @@ void adBms6830ParseConfig(uint8_t tIC, cell_asic_6830 *ic, GRP grp, uint8_t *dat
  *******************************************************************************
 */
 /* Parse cell voltages */
-void adBms6830ParseCell(uint8_t tIC, cell_asic_6830 *ic, GRP grp, uint8_t *cv_data)
+adBms6830ParseCell(uint8_t tIC, cell_asic_6830 *ic, GRP grp, uint8_t *cv_data)
 {
   uint8_t *data, data_size, address = 0;
   if(grp == ALL_GRP){data_size = RDCVALL_SIZE;}
@@ -475,7 +475,7 @@ void adBms6830ParseCell(uint8_t tIC, cell_asic_6830 *ic, GRP grp, uint8_t *cv_da
  *
  *******************************************************************************
 */
-void xadBms6830ParseAverageCell(uint8_t tIC, cell_asic_6830 *ic, GRP grp, uint8_t *acv_data)
+void adBms6830ParseAverageCell(uint8_t tIC, cell_asic_6830 *ic, GRP grp, uint8_t *acv_data)
 {
   uint8_t *data, data_size, address = 0;
   if(grp == ALL_GRP){data_size = RDACALL_SIZE;}
