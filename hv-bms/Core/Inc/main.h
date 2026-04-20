@@ -68,7 +68,9 @@ extern "C" {
 #define PEC_ERROR_LIMIT 5
 
 /* Includes ------------------------------------------------------------------*/
+#ifndef TESTBENCH
 #include "stm32f4xx_hal.h"
+#endif
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */

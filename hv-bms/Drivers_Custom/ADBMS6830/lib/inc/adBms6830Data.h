@@ -28,6 +28,7 @@ and its licensor.
 
 #define CELL 16                 /* Bms ic number of cell              */
 #define AUX  12                 /* Bms ic number of Aux               */
+#define TEMPS AUX - 2           /* Bms ic number of cell temps stored */
 #define RAUX 10                 /* Bms ic number of RAux              */
 #define PWMA 12                 /* Bms ic number of PWMA              */
 #define PWMB 4                  /* Bms ic number of PWMB              */
@@ -42,6 +43,10 @@ and its licensor.
 #define RDCSALL_SIZE    66      /* RDCSALL data byte size             */
 #define RDASALL_SIZE    70      /* RDASALL data byte size             */
 #define RDACSALL_SIZE   66      /* RDACSALL data byte size            */
+
+#define AVG_GROUP_SIZE 3
+#define AUX_GROUP_SIZE 3
+
 
 /* For ADBMS6830 config register structure */
 typedef struct

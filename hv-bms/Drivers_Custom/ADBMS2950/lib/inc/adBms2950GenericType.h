@@ -34,6 +34,7 @@ Agreement.
 #include "adBms2950Data.h"
 #include "mcuWrapper.h"
 #include "adBmsUtility.h"
+#include <stdint.h>
 
 void spiSendCmd2950(uint8_t tIC, cell_asic_2950 *ic, uint8_t tx_cmd[2]);
 void adBms2950ReadData(uint8_t tIC, cell_asic_2950 *ic, uint8_t cmd_arg[2], DATA_TYPE type, REG_GRP group);

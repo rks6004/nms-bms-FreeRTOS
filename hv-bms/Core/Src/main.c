@@ -104,6 +104,7 @@
     taskENTER_CRITICAL();                                                                          \
     bmsFault();                                                                                    \ 
     taskEXIT_CRITICAL();                                                                           \
+    printf("Fault detected at SEGMENT: %d\n", ic);                                                 \
   } while (0);
 #endif
 /* USER CODE END PM */
@@ -695,9 +696,11 @@ void checkAcellPEC(void)
         taskENTER_CRITICAL();
         #ifndef TESTBENCH
         encode_can_0x0c3_PEC_ERROR(canBuses[VEHICLE_CAN].converter, 1);
-        #else
         #endif
         taskEXIT_CRITICAL();
+        #ifdef TESTBENCH
+        printf("PEC Error @ Segment: %d", curr_ic);
+        #endif
         bmsFault();
       }
     }
@@ -812,18 +815,14 @@ void dischargingTask(void *argument)
       #endif
       // Measure all average cell voltage registers
       adBms6830_read_avgcell_voltages(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
+      #ifndef TESTBENCH
       // Start auxiliary voltage measurements
       adBms6830_start_aux_voltage_measurment(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
+      #endif
       // Read auxiliary voltages for thermistors
       adBms6830_read_aux_voltages(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
       // Convert thermistor voltage to temperature
       adBms6830_populate_cell_temps(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
-
-      // adBms6830_read_avgcell_voltages_testbench(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
-      // adBms6830_read_aux_voltages_testbench(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0], A)
-      // adBms6830_populate_cell_temps_testbench(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
-
-
 
 #if (ADBMS_2950_IC_NUM > 0)
       // Read pack voltage and current from ADBMS2950

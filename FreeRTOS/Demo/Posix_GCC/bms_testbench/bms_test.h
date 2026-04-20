@@ -19,26 +19,20 @@ typedef enum {
 
 typedef enum  {
     VOLT_NORMAL = 0,
-    VOLT_OV_BRIEF,
-    VOLT_UV_BRIEF,
-    VOLT_OV_CONSISTENT,
-    VOLT_UV_CONSISTENT
+    VOLT_OV,
+    VOLT_UV
 } VOLTAGE_STATE;
 
 typedef enum {
     TEMP_NORMAL = 0,
-    TEMP_OT_BRIEF,
-    TEMP_UT_BRIEF,
-    TEMP_OT_CONSISTENT,
-    TEMP_UT_CONSISTENT
+    TEMP_OT,
+    TEMP_UT
 } TEMP_STATE;
 
 typedef enum {
     CURR_NORMAL = 0,
-    CURR_OC_BRIEF,
-    CURR_UC_BRIEF,
-    CURR_OC_CONSISTENT,
-    CURR_UC_CONSISTENT
+    CURR_OC,
+    CURR_UC
 } CURRENT_STATE;
 
 typedef enum {

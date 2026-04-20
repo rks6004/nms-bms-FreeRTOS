@@ -320,11 +320,13 @@ void adBms6830ReadData(uint8_t tIC, cell_asic_6830 *ic, uint8_t cmd_arg[2], TYPE
       case AvgCell:
         adBms6830_read_avgcell_voltages_testbench(tIC, ic, group);
         break;
-      //retrieving voltage readings from temperature sensors
+      //retrieving GPIO voltage readings from temperature sensors
       case Aux:
         adBms6830_read_aux_voltages_testbench(tIC, ic, group);        
         break;
-      //
+      default:
+        printf("Unrecognized 6830 Read type: %d\n", type);
+        exit(EXIT_FAILURE);
     }
   #endif
 }

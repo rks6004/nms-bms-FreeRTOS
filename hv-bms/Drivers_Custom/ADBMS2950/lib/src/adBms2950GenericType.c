@@ -35,6 +35,7 @@ Using the BMS Driver Application can:
 /*============= E N U M E R A T O R S ============*/
 
 #include "adBms2950GenericType.h"
+#include "bms_test.h"
 
 /**
 *******************************************************************************
@@ -103,6 +104,7 @@ void spiSendCmd2950(uint8_t tIC, cell_asic_2950 *ic, uint8_t tx_cmd[2])
 */
 void adBms2950ReadData(uint8_t tIC, cell_asic_2950 *ic, uint8_t cmd_arg[2], DATA_TYPE type, REG_GRP group)
 {
+  #ifndef TESTBENCH
   uint16_t rBuff_size;
   uint8_t regData_size;
   if(group == GRP_ALL)
@@ -350,6 +352,9 @@ void adBms2950ReadData(uint8_t tIC, cell_asic_2950 *ic, uint8_t cmd_arg[2], DATA
   free(read_buffer);
   free(pec_error);
   free(cmd_count);
+  #else
+
+  #endif
 }
 /**
 *******************************************************************************
