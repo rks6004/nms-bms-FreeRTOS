@@ -109,15 +109,19 @@ Drivers_Custom/ADBMS6830/program/src/adBms6830PrintResult.c \
 Drivers_Custom/ADBMS_common/src/adBmsCommonDriver.c \
 Drivers_Custom/ADBMS_util/src/adBmsCmdList.c \
 Drivers_Custom/ADBMS_util/src/adBmsUtility.c \
-FreeRTOS/Source/croutine.c \
+nms_wrappers/adbms_wrappers/adBms2950_TESTBENCH.c \
+nms_wrappers/adbms_wrappers/adBms6830_TESTBENCH.c \
+../FreeRTOS/Source/croutine.c \
 ../FreeRTOS/Source/event_groups.c \
 ../FreeRTOS/Source/list.c \
-../FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c \
-../FreeRTOS/Source/portable/MemMang/heap_4.c \
+../FreeRTOS/Source/portable/ThirdParty/GCC/Posix/port.c \
+../FreeRTOS/Source/portable/ThirdParty/GCC/Posix/utils/wait_for_event.c \
+../FreeRTOS/Source/portable/MemMang/heap_3.c \
 ../FreeRTOS/Source/queue.c \
 ../FreeRTOS/Source/stream_buffer.c \
 ../FreeRTOS/Source/tasks.c \
-../FreeRTOS/Source/timers.c
+../FreeRTOS/Source/timers.c \
+../FreeRTOS/Demo/Posix_GCC/bms_testbench/bms_test.c \
 Core/Src/main.c
 
 #######################################
@@ -220,16 +224,17 @@ C_DEFS = \
 #have to include the POSIX flavor of FreeRTOS implementations
 C_INCLUDES = \
 -I../FreeRTOS/Source/include \
+-I../FreeRTOS/Source/portable/ThirdParty/GCC/Posix \
 -ICore/Inc \
 -Inms_wrappers/util \
 -Inms_wrappers/nms_wrappers/can_wrappers \
--Inms_wrappers/adbms_drivers \
-# -IDrivers_Custom/ADBMS2950/lib/inc \
-# -IDrivers_Custom/ADBMS2950/program/inc \
-# -IDrivers_Custom/ADBMS6830/lib/inc \
-# -IDrivers_Custom/ADBMS6830/program/inc \
-# -IDrivers_Custom/ADBMS_common/inc \
-# -IDrivers_Custom/ADBMS_util/inc
+-Inms_wrappers/adbms_wrappers \
+-IDrivers_Custom/ADBMS2950/lib/inc \
+-IDrivers_Custom/ADBMS2950/program/inc \
+-IDrivers_Custom/ADBMS6830/lib/inc \
+-IDrivers_Custom/ADBMS6830/program/inc \
+-IDrivers_Custom/ADBMS_common/inc \
+-IDrivers_Custom/ADBMS_util/inc
 
 endif
 

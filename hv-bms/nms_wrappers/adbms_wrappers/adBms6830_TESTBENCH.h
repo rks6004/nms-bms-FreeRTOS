@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -33,7 +32,6 @@
 
 #define OPTIMAL_CELL_VOLTAGE 4.15 //V
 #define OPTIMAL_CELL_TEMP 25 //deg C, picking ~ambient temp
-#define OPTIMAL_ERROR_COUNT 0
 
 
 /* ============================================================================

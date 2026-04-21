@@ -104,7 +104,9 @@
     taskENTER_CRITICAL();                                                                          \
     bmsFault();                                                                                    \ 
     taskEXIT_CRITICAL();                                                                           \
+    xSemaphoreTake(ioMutexHandle, portMAX_DELAY);                                                  \
     printf("Fault detected at SEGMENT: %d\n", ic);                                                 \
+    xSemaphoreGive(ioMutexHandle);                                                                 \
   } while (0);
 #endif
 /* USER CODE END PM */
@@ -138,7 +140,13 @@ typedef enum
   CHARGE_DISABLED = 1
 } ChargeEnableState;
 
+int16_t chargeCurrent; //A
+ChargingState chargeState;
+ChargeEnableState chargerEnable;
+
+
 SemaphoreHandle_t bmsMutexHandle;
+SemaphoreHandle_t ioMutexHandle;
 TimerHandle_t faultLatchTimerHandle;
 
 
@@ -151,8 +159,10 @@ int dischargingJustEnabled = DISCHARGE_REGULAR_OPERATION;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
+#ifndef TESTBENCH
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
+#endif
 /* USER CODE BEGIN PFP */
 #ifdef __GNUC__
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
@@ -211,10 +221,9 @@ GETCHAR_PROTOTYPE
  */
 void chargeController(void)
 {
-  // Define static varibles. These are local but maintain value between calls.
-  static int16_t chargeCurrent = 0; //A
-  static ChargingState chargeState = CHARGE_STATE_SLOW_CHARGE;
-  static ChargeEnableState chargerEnable = CHARGE_ENABLED;
+  chargeCurrent = 0; //A
+  chargeState = CHARGE_STATE_SLOW_CHARGE;
+  chargerEnable = CHARGE_ENABLED;
 
   // Local varibles used in function
   int16_t chargeVoltage = (CELL_COUNT * MAX_CELL_VOLTAGE * 10); // mV
@@ -342,7 +351,9 @@ void bmsFaultLatch(void)
   #ifndef TESTBENCH
   HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_RESET);
   #else
+  xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
   printf("BMS Fault Latch Pulled!\n");
+  xSemaphoreGive(ioMutexHandle);
   #endif
 }
 
@@ -360,7 +371,9 @@ void bmsFault(void)
   taskEXIT_CRITICAL();
   
   #ifdef TESTBENCH
+  xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
   printf("Inverter Disabled due to BMS Fault\n");
+  xSemaphoreGive(ioMutexHandle);
   #endif
 
   if (inverterState == 0)
@@ -478,7 +491,6 @@ void adbms2950_pack_oc_check(void)
     taskENTER_CRITICAL();
     #ifndef TESTBENCH
     encode_can_0x0c3_PACKOC(canBuses[VEHICLE_CAN].converter, 1);
-    #else
     #endif
     taskEXIT_CRITICAL();
     bmsFault();
@@ -699,7 +711,9 @@ void checkAcellPEC(void)
         #endif
         taskEXIT_CRITICAL();
         #ifdef TESTBENCH
-        printf("PEC Error @ Segment: %d", curr_ic);
+        xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+        printf("AvgCell PEC Error @ Segment: %d", curr_ic);
+        xSemaphoreGive(ioMutexHandle);
         #endif
         bmsFault();
       }
@@ -723,9 +737,13 @@ void checkAuxPEC(void)
         taskENTER_CRITICAL();
         #ifndef TESTBENCH
         encode_can_0x0c3_PEC_ERROR(canBuses[VEHICLE_CAN].converter, 1);
-        #else
         #endif
         taskEXIT_CRITICAL();
+        #ifdef TESTBENCH
+        xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+        printf("Aux PEC Error @ Segment: %d", curr_ic);
+        xSemaphoreGive(ioMutexHandle);
+        #endif
         bmsFault();
       }
     }
@@ -914,7 +932,9 @@ void chargingTask(void *argument)
       // STOP BALANCING WHEN WE HAVE A FAULT
       uint64_t bmsFaults = 0;
       taskENTER_CRITICAL();
+      #ifndef TESTBENCH
       pack_message_vehicle(canBuses[VEHICLE_CAN].converter, CAN_ID_BMS_FAULT, &bmsFaults);
+      #endif
       taskEXIT_CRITICAL();
 
       if (bmsFaults != 0)
@@ -999,6 +1019,7 @@ void mainTask(void *argument)
 {
   // RTOS Objects initialization
   bmsMutexHandle = xSemaphoreCreateMutex();
+  ioMutexHandle = xSemaphoreCreateMutex();
 
   // Create event flags for charging mode
   charging_evt_id = xEventGroupCreate();
@@ -1056,6 +1077,7 @@ int main(void)
   xTaskCreate(mainTask, "mainTask", configMINIMAL_STACK_SIZE, NULL, PRIORITY_IDLE, NULL);
 
   vTaskStartScheduler();
+  TickType_t tic = xTaskGetTickCount();
 }
 /* USER CODE END 0 */
 

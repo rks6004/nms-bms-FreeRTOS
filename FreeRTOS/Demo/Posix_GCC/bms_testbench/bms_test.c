@@ -40,7 +40,7 @@ void testbench_init(void) {
         pec_testing = PEC_NORMAL;
         break;
     case LOW_SOC_DISCHARGE:
-        voltage_testing = VOLT_UV_BRIEF;
+        voltage_testing = VOLT_UV;
         temp_testing = TEMP_NORMAL;
         current_testing = CURR_NORMAL;
         pec_testing = PEC_NORMAL;
@@ -48,12 +48,12 @@ void testbench_init(void) {
     case CURRENT_SPIKE_DISCHARGE:
         voltage_testing = VOLT_NORMAL;
         temp_testing = TEMP_NORMAL;
-        current_testing = CURR_OC_BRIEF;
+        current_testing = CURR_OC;
         pec_testing = PEC_NORMAL;
         break;
     case OVERHEAT_DISCHARGE:
         voltage_testing = VOLT_NORMAL;
-        temp_testing = TEMP_OT_BRIEF;
+        temp_testing = TEMP_OT;
         current_testing = CURR_NORMAL;
         pec_testing = PEC_NORMAL;
         break;
@@ -65,13 +65,13 @@ void testbench_init(void) {
         break;
     case OVERHEAT_CHARGE:
         voltage_testing = VOLT_NORMAL;
-        temp_testing = TEMP_OT_BRIEF;
+        temp_testing = TEMP_OT;
         current_testing = CURR_NORMAL;
         pec_testing = PEC_NORMAL;
         break;
     case SIGNAL_INTERFERENCE:
         voltage_testing = VOLT_NORMAL;
-        temp_testing = TEMP_OT_BRIEF;
+        temp_testing = TEMP_OT;
         current_testing = CURR_NORMAL;
         pec_testing = PEC_HEAVY_INTERFERENCE;
     default:

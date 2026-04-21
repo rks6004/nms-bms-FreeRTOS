@@ -16,6 +16,7 @@ Agreement.
 */
 
 #include "adBms2950Driver.h"
+#include "adBms2950_TESTBENCH.h"
 
 /**
  * @brief Header for functional test cases
@@ -220,7 +221,11 @@ void adBms2950_init_config(uint8_t tIC, cell_asic_2950 *ic)
     ic[cic].tx_cfgb.gpio1c    = (GPIOxC)PULL_DOWN_OFF;
     ic[cic].tx_cfgb.gpio2c    = (GPIOxC)PULL_DOWN_OFF;
     ic[cic].tx_cfgb.gpio3c    = (GPIOxC)PULL_DOWN_OFF;
-    ic[cic].tx_cfgb.gpio4c    = (GPIOxC)PULL_DOWN_OFF;   
+    ic[cic].tx_cfgb.gpio4c    = (GPIOxC)PULL_DOWN_OFF;
+    
+    #ifdef TESTBENCH
+      
+    #endif
   }
 }
 

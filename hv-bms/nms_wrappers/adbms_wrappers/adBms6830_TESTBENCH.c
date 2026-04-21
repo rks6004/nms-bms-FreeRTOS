@@ -5,19 +5,24 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdint.h>
-#include "bms_test.h"
+
+#include "semphr.h"
+#include "FreeRTOS.h"
 
 //Analog-Devices-related includes
 #include "adBms6830Driver.h"
 #include "adBms6830Data.h"
 
 #include "adBms6830_TESTBENCH.h"
+#include "bms_test.h"
 
 extern VOLTAGE_STATE voltage_testing;
 extern TEMP_STATE temp_testing;
-extern CURRENT_STATE current_testing;
-extern PEC_STATE pec_testing; 
+extern PEC_STATE pec_testing;
 
+extern SemaphoreHandle_t ioMutexHandle;
+
+ 
 void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP group) {
     for(uint8_t curr_ic = 0; curr_ic < tIC; curr_ic++) 
     {
@@ -46,7 +51,7 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
             }
             break;
         default:
-            print("Unknown voltage emulation state.\n");
+            printf("Invalid voltage emulation state: %d\n", voltage_testing);
             exit(EXIT_FAILURE);
             break;
         }
@@ -58,6 +63,27 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
         }
         else { //ALLGRP
             memcpy(&(ic[curr_ic].acell.ac_codes), altered_voltages, (size_t)(CELL * sizeof(int16_t)));
+        }
+        switch (pec_testing)
+        {
+        case PEC_NORMAL:
+            //low probability of failing interference
+            ic[curr_ic].cccrc.acell_pec = (uint8_t)(rand() > 0.03 * RAND_MAX);
+            break;
+        case PEC_SLIGHT_INTEFERENCE:
+            //slight probability of failing interference
+            ic[curr_ic].cccrc.acell_pec = (uint8_t)(rand() > 0.15 * RAND_MAX);
+            break;
+        case PEC_HEAVY_INTERFERENCE:
+            //extrodinarily statistically significant probability of failing interference
+            ic[curr_ic].cccrc.acell_pec = (uint8_t)(rand() > 0.40 * RAND_MAX);
+            break;
+        default:
+            xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+            printf("Invalid PEC strength setting in emulation: %d\n", pec_testing);
+            xSemaphoreGive(ioMutexHandle);
+            exit(EXIT_FAILURE);
+            break;
         }    
     }
 }
@@ -90,7 +116,9 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
             }
             break;
         default:
-            print("Unknown temperature emulation state.\n");
+            xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+            printf("Invalid temperature emulation state: %d\n", temp_testing);
+            xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
             break;
         }
@@ -102,9 +130,33 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
             memcpy(&(ic[curr_ic].aux.a_codes), altered_voltages, (size_t)(AUX * sizeof(int16_t)));
         }
         else { //E,F not valid groups
-            printf("Invalid group access in read_aux.\n");
+            xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+            printf("Invalid group access in read_aux: %d\n", group);
+            xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
-        }    
+        }
+        switch (pec_testing)
+        {
+        case PEC_NORMAL:
+            //low probability of failing interference
+            ic[curr_ic].cccrc.aux_pec = (uint8_t)(rand() < 0.03 * RAND_MAX);
+            break;
+        case PEC_SLIGHT_INTEFERENCE:
+            //slight probability of failing interference
+            ic[curr_ic].cccrc.aux_pec = (uint8_t)(rand() < 0.15 * RAND_MAX);
+            break;
+        case PEC_HEAVY_INTERFERENCE:
+            //extrodinarily statistically significant probability of failing interference
+            ic[curr_ic].cccrc.aux_pec = (uint8_t)(rand() < 0.40 * RAND_MAX);
+            break;
+        default:
+            xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+            printf("Invalid PEC strength setting in emulation: %d\n", pec_testing);
+            xSemaphoreGive(ioMutexHandle);
+            exit(EXIT_FAILURE);
+            break;
+        }
+
     }
 }
 

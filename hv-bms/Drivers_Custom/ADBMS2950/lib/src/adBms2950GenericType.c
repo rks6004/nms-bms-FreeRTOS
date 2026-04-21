@@ -35,6 +35,7 @@ Using the BMS Driver Application can:
 /*============= E N U M E R A T O R S ============*/
 
 #include "adBms2950GenericType.h"
+#include "adBms2950_TESTBENCH.h"
 #include "bms_test.h"
 
 /**
@@ -353,7 +354,18 @@ void adBms2950ReadData(uint8_t tIC, cell_asic_2950 *ic, uint8_t cmd_arg[2], DATA
   free(pec_error);
   free(cmd_count);
   #else
-
+    switch (type) {
+      case AccCr:
+        adBms2950_read_acc_ivbat_testbench(tIC, ic, type);
+        break;
+      case AccVbat:
+        adBms2950_read_acc_ivbat_testbench(tIC, ic, type);
+        break;
+      default:
+        printf("Unsupported 2950 Read type: %d\n", type);
+        exit(EXIT_FAILURE);
+        break;
+    }
   #endif
 }
 /**

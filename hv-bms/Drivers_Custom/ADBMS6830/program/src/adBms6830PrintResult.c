@@ -17,6 +17,10 @@ and its licensor.
 *  @{
 */
 #include "adBms6830PrintResult.h"
+#include "bms_util.h"
+#include "semphr.h"
+
+extern SemaphoreHandle_t ioMutexHandle; //make sure to use this as control for any function actually used here in TESTBENCH
 
 
 /**
