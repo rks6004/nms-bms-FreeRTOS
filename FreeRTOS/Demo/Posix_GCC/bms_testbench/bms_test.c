@@ -10,25 +10,16 @@
 #include "console.h"
 #include "stdlib.h"
 #include "bms_test.h"
+#include "main.h"
 
 /*  BMS Includes */
-extern int test_stream_read(void* filepath);
+VOLTAGE_STATE voltage_testing;
+TEMP_STATE temp_testing;
+CURRENT_STATE current_testing;
+PEC_STATE pec_testing;
 
-extern VOLTAGE_STATE voltage_testing;
-extern TEMP_STATE temp_testing;
-extern CURRENT_STATE current_testing;
-extern PEC_STATE pec_testing; 
-
-int bms_file_reading_test(void) {
-    console_print("Starting the BMS test in specific code.\n");
-    int ret = test_stream_read("./read_test");
-    return ret;
-}
-
-int bms_task_tester(void* data) {
-    console_print("%d\n", *(int*)data);
-    return 0;
-}
+emulated_adbms_6830 characteristic_6830[ADBMS_6830_IC_NUM];
+emulated_adbms_2950 characteristic_2950[ADBMS_2950_IC_NUM];
 
 void testbench_init(void) {
     switch (BMS_TEST_TYPE)

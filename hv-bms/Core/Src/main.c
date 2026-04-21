@@ -120,6 +120,13 @@ cell_asic_6830 ADBMS_6830_IC[ADBMS_6830_IC_NUM];
 cell_asic_2950 ADBMS_2950_IC[ADBMS_2950_IC_NUM];
 #endif // ADBMS_2950_IC_NUM > 0
 
+
+#ifdef TESTBENCH
+extern emulated_adbms_6830 characteristic_6830[ADBMS_6830_IC_NUM];
+extern emulated_adbms_2950 characteristic_2950[ADBMS_2950_IC_NUM];
+#endif //TESTBENCH
+
+
 uint8_t acellPecErrorCount[ADBMS_6830_IC_NUM] = {0};
 uint8_t auxPecErrorCount[ADBMS_6830_IC_NUM] = {0};
 
@@ -861,7 +868,7 @@ void dischargingTask(void *argument)
       adBms2950_get_data();
 #endif // ADBMS_2950_IC_NUM > 0
 
-      xSemaphoreGive(bmsMutexHandle);
+    xSemaphoreGive(bmsMutexHandle);
     }
     // Check for BMS Faults
     checkBMSFaults();
@@ -1074,10 +1081,16 @@ int main(void)
   SystemClock_Config();
   #endif
   peripheralsInit();
+  #ifdef TESTBENCH
+  for (int i = 0; i < ADBMS_6830_IC_NUM; i++) {
+    characteristic_6830[i].ic_data = &ADBMS_6830_IC[i];
+  }
+  for (int i = 0; i < ADBMS_2950_IC_NUM; i++) {
+    characteristic_2950[i].ic_data = &ADBMS_2950_IC[i];
+  }
+  #endif
   xTaskCreate(mainTask, "mainTask", configMINIMAL_STACK_SIZE, NULL, PRIORITY_IDLE, NULL);
-
   vTaskStartScheduler();
-  TickType_t tic = xTaskGetTickCount();
 }
 /* USER CODE END 0 */
 

@@ -16,11 +16,9 @@
 #include "adBms6830_TESTBENCH.h"
 #include "bms_test.h"
 
-extern VOLTAGE_STATE voltage_testing;
-extern TEMP_STATE temp_testing;
-extern PEC_STATE pec_testing;
-
 extern SemaphoreHandle_t ioMutexHandle;
+
+extern emulated_adbms_6830 characteristic_6830[ADBMS_6830_IC_NUM];
 
  
 void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP group) {
@@ -31,7 +29,7 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
         for (int cell = 0; cell < CELL; cell++) {
             altered_voltages[cell] -= (rand() % 100); //fluctates cell voltages
         }
-        switch (voltage_testing)
+        switch (characteristic_6830[curr_ic].volt_behavior)
         {
         case VOLT_NORMAL:
             //only need to fuzz voltage values slightly for normal voltage, no further action needed   
@@ -51,7 +49,9 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
             }
             break;
         default:
-            printf("Invalid voltage emulation state: %d\n", voltage_testing);
+            xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+            printf("Invalid voltage emulation state: %d\n", characteristic_6830[curr_ic].volt_behavior);
+            xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
             break;
         }
@@ -64,7 +64,7 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
         else { //ALLGRP
             memcpy(&(ic[curr_ic].acell.ac_codes), altered_voltages, (size_t)(CELL * sizeof(int16_t)));
         }
-        switch (pec_testing)
+        switch (characteristic_6830[curr_ic].signal_behavior)
         {
         case PEC_NORMAL:
             //low probability of failing interference
@@ -80,7 +80,7 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
             break;
         default:
             xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
-            printf("Invalid PEC strength setting in emulation: %d\n", pec_testing);
+            printf("Invalid PEC strength setting in emulation: %d\n", characteristic_6830[curr_ic].signal_behavior);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
             break;
@@ -96,7 +96,7 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
         for (int temp_adc = 0; temp_adc < AUX; temp_adc++) {
             altered_voltages[temp_adc] -= (rand() % 100); //fluctates temp voltages by ~1 degC max
         }
-        switch (temp_testing)
+        switch (characteristic_6830[curr_ic].temp_behavior)
         {
         case TEMP_NORMAL:
             //only need to fuzz voltage values slightly for normal temps, no further action needed   
@@ -117,7 +117,7 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
             break;
         default:
             xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
-            printf("Invalid temperature emulation state: %d\n", temp_testing);
+            printf("Invalid temperature emulation state: %d\n", characteristic_6830[curr_ic].temp_behavior);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
             break;
@@ -135,7 +135,7 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
         }
-        switch (pec_testing)
+        switch (characteristic_6830[curr_ic].signal_behavior)
         {
         case PEC_NORMAL:
             //low probability of failing interference
@@ -151,7 +151,7 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
             break;
         default:
             xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
-            printf("Invalid PEC strength setting in emulation: %d\n", pec_testing);
+            printf("Invalid PEC strength setting in emulation: %d\n", characteristic_6830[curr_ic].signal_behavior);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
             break;

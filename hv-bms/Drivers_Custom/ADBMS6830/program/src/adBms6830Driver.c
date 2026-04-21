@@ -28,8 +28,8 @@ and its licensor.
 */
 
 /* Set Under Voltage and Over Voltage Thresholds */
-const float OV_THRESHOLD = 4.2;                 /* Volt */
-const float UV_THRESHOLD = 2.5;                 /* Volt */
+const float OV_THRESHOLD = MAX_CELL_VOLTAGE;                 /* Volt */
+const float UV_THRESHOLD = MIN_CELL_VOLTAGE;                 /* Volt */
 const float OT_THRESHOLD = 60.0;                /* Temperature(Celsius) */
 const float UT_THRESHOLD = -20.0;                /* Temperature(Celsius) */
 const int OWC_Threshold = 2000;                 /* Cell Open wire threshold(mili volt) */
