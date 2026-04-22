@@ -13,23 +13,6 @@
 
 //DEFINES
 
-//many of these will be derived from command-line arguments
-#ifndef VOLTAGE_TEST
-    #define VOLTAGE_TEST VOLT_NORMAL
-#endif
-
-#ifndef TEMP_TEST
-    #define TEMP_TEST TEMP_NORMAL
-#endif
-
-#ifndef CURRENT_TEST
-    #define CURRENT_TEST CURR_NORMAL
-#endif
-
-#ifndef PEC_TEST
-    #define PEC_TEST PEC_NORMAL
-#endif
-
 #define OPTIMAL_CELL_VOLTAGE 4.15 //V
 #define OPTIMAL_CELL_TEMP 25 //deg C, picking ~ambient temp
 
@@ -85,7 +68,7 @@ SAMPLE SEGMENT STRUCTS FOR TESTING
 
 const int16_t optimal_cell_voltage_adc = VOLTAGE_TO_ADC_CODE(OPTIMAL_CELL_VOLTAGE);
 //4.15 V across all cells in segment when translated
-const extern acv_ optimal_voltages = {
+const acv_ optimal_voltages = {
     .ac_codes = {
         optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //A
         optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //B
@@ -96,7 +79,7 @@ const extern acv_ optimal_voltages = {
     }
 };
 
-const extern cell_temps_ optimal_temps = {
+const cell_temps_ optimal_temps = {
     .cell_temps = {
         (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, //A
         (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, //B
@@ -106,7 +89,7 @@ const extern cell_temps_ optimal_temps = {
 };
 
 const int16_t optimal_cell_temp_adc = 0; //derived from OPTIMAL_CELL_TEMP, but calculated seperately due to inability to use math functions in precompilation
-const extern ax_ optimal_temps_adcs = {
+const ax_ optimal_temps_adcs = {
     .a_codes = {
         optimal_cell_temp_adc, optimal_cell_temp_adc, optimal_cell_temp_adc,    //A
         optimal_cell_temp_adc, optimal_cell_temp_adc, optimal_cell_temp_adc,    //B

@@ -32,13 +32,12 @@ Agreement.
 
 #include "common.h"
 #include "adBms2950Data.h"
-#include "mcuWrapper.h"
 #include "adBmsUtility.h"
-#include "bms_util.h"
 #ifdef TESTBENCH
 #include <stdint-gcc.h>
 #else
 #include <stdint.h>
+#include "mcuWrapper.h"
 #endif
 
 

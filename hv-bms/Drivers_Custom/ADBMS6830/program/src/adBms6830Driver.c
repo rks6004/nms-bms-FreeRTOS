@@ -119,9 +119,11 @@ void adBms6830_init_charging_config(uint8_t tIC, cell_asic_6830 *ic)
  */
 void adBms6830_init_charging_measurements(uint8_t tIC, cell_asic_6830 *ic)
 {
+  #ifndef TESTBENCH
   adBmsWakeupIc(tIC);
   // Send ADCV command to initialize C-ADCs conversions (check datasheet for more details)
   adBms6830_Adcv(RD_ON, CONTINUOUS, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
+  #endif
   Delay_ms(1); // ADCs are updated at their conversion rate is 1ms
 }
 
@@ -169,11 +171,15 @@ void adBms6830_read_aux_voltages(uint8_t tIC, cell_asic_6830 *ic)
 void adBms6830_charging_voltage_measurement(uint8_t tIC, cell_asic_6830* ic)
 {
   // Enable Redundant Measurements
+  #ifndef TESTBENCH //not needed if polling stable emulated data
   adBms6830_Adsv(CONTINUOUS, DCP_OFF, OW_OFF_ALL_CH);
   Delay_ms(20); // ADCs are updated at their conversion rate is 8ms
+  #endif
   
+  #ifndef TESTBENCH
   // read all Cell Voltage Registers
   adBmsWakeupIc(tIC);
+  #endif
   adBms6830ReadData(tIC, &ic[0], RDACA, AvgCell, A);
   adBms6830ReadData(tIC, &ic[0], RDACB, AvgCell, B);
   adBms6830ReadData(tIC, &ic[0], RDACC, AvgCell, C);
@@ -181,9 +187,10 @@ void adBms6830_charging_voltage_measurement(uint8_t tIC, cell_asic_6830* ic)
   adBms6830ReadData(tIC, &ic[0], RDACE, AvgCell, E);
   adBms6830ReadData(tIC, &ic[0], RDACF, AvgCell, F);
 
+  #ifndef TESTBENCH
   // Reset ADSV
   adBms6830_Adsv(SINGLE, DCP_ON, OW_OFF_ALL_CH);
-
+  #endif
 }
 
 /**

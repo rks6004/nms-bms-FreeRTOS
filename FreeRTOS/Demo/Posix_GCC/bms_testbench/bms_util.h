@@ -1,1 +1,3 @@
-#define TESTBENCH 1 //remove this before project is able to build independently
+#define PEC_NORMAL_PROB 3
+#define PEC_SLIGHT_PROB 15
+#define PEC_HEAVY_PROB  80

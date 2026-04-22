@@ -2,16 +2,8 @@
 #include "adBms2950Data.h"
 #include "adBms6830Data.h"
 
-typedef enum bms_test_type {
-    NORMAL_DISCHARGE = 0,
-    NORMAL_CHARGE,
-    SEGMENT_OV,
-    SEGMENT_UV,
-    CURRENT_SPIKE,
-    OVERHEAT,
-    SIGNAL_INTERFERENCE,
-    ALL_TESTS
-} bms_test_type;
+// typedef enum bms_test_type {
+// } bms_test_type;
 
 typedef enum VOLTAGE_STATE {
     VOLT_NORMAL = 0,
@@ -19,13 +11,13 @@ typedef enum VOLTAGE_STATE {
     VOLT_UV
 } VOLTAGE_STATE;
 
-typedef enum CURRENT_STATE {
+typedef enum TEMP_STATE {
     TEMP_NORMAL = 0,
     TEMP_OT,
     TEMP_UT
 } TEMP_STATE;
 
-typedef enum {
+typedef enum CURRENT_STATE {
     CURR_NORMAL = 0,
     CURR_OC,
     CURR_UC
@@ -53,12 +45,6 @@ typedef struct emulated_adbms_2950
     cell_asic_2950* ic_data;
 } emulated_adbms_2950;
 
-#ifdef TESTBENCH
-    #ifndef BMS_TEST_TYPE
-        bms_test_type test_type = NORMAL_DISCHARGE;
-    #else
-        bms_test_type test_type = BMS_TEST_TYPE;
-    #endif    
-#endif
-
 void testbench_init(void);
+
+void testbench_task(void* argument);

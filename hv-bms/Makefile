@@ -124,6 +124,8 @@ nms_wrappers/adbms_wrappers/adBms6830_TESTBENCH.c \
 ../FreeRTOS/Demo/Posix_GCC/bms_testbench/bms_test.c \
 Core/Src/main.c
 
+endif
+
 #######################################
 # binaries
 #######################################
@@ -160,24 +162,17 @@ endif
 ifndef TESTBENCH
 # cpu
 CPU = -mcpu=cortex-m4
-
 # fpu
 FPU = -mfpu=fpv4-sp-d16
-
 # float-abi
 FLOAT-ABI = -mfloat-abi=hard
-
 # mcu
 MCU = $(CPU) -mthumb $(FPU) $(FLOAT-ABI)
 else
 #no need to specify architecture traits when building for testbench
-
 MCU = 
-
 CPU =
-
 FPU =
-
 endif
 
 ifndef TESTBENCH
@@ -194,6 +189,15 @@ C_DEFS =  \
 AS_INCLUDES =  \
 -ICore/Inc
 
+else
+#building for testbench simulator
+
+#C_DEFS likely will need to be updated w/ macros/const vars
+C_DEFS = \
+-DTESTBENCH=1
+endif
+
+ifndef TESTBENCH
 # C includes
 C_INCLUDES =  \
 -I../../shared/dbc_to_c/generated_code \
@@ -213,30 +217,32 @@ C_INCLUDES =  \
 -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F
-
 else
-#building for testbench simulator
-
-#C_DEFS likely will need to be updated w/ macros/const vars
-C_DEFS = \
--DTESTBENCH=1
-
 #have to include the POSIX flavor of FreeRTOS implementations
 C_INCLUDES = \
 -I../FreeRTOS/Source/include \
 -I../FreeRTOS/Source/portable/ThirdParty/GCC/Posix \
+-I../FreeRTOS/Demo/Posix_GCC/bms_testbench \
 -ICore/Inc \
--Inms_wrappers/util \
--Inms_wrappers/nms_wrappers/can_wrappers \
+-IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
+-IDrivers/CMSIS/Include \
+-IDrivers/STM32F4xx_HAL_Driver/Inc \
+-IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
+-Inms_wrappers/can_wrappers \
 -Inms_wrappers/adbms_wrappers \
+-Inms_wrappers/util \
+-Inms_wrappers/nms_shared/dbc_to_c/generated_code \
 -IDrivers_Custom/ADBMS2950/lib/inc \
 -IDrivers_Custom/ADBMS2950/program/inc \
 -IDrivers_Custom/ADBMS6830/lib/inc \
 -IDrivers_Custom/ADBMS6830/program/inc \
 -IDrivers_Custom/ADBMS_common/inc \
 -IDrivers_Custom/ADBMS_util/inc
-
 endif
+
+# ifdef TESTBENCH
+# C_INCLUDES := $(filter-out Drivers_Custom/ADBMS_util/inc/mcuWrapper.h, $(C_INCLUDES))
+# endif
 
 # compile gcc flags
 ifndef TESTBENCH
@@ -278,6 +284,7 @@ ifndef TESTBENCH
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
 else
 all: $(BUILD_DIR)/$(TARGET).elf
+endif
 
 #######################################
 # build the application
@@ -337,5 +344,3 @@ endif
 ifndef TESTBENCH
 include ../../shared/build_util/stm32f446re_flash.make
 endif
-
-# *** EOF ***

@@ -37,7 +37,7 @@ void adBms2950_read_acc_ivbat_testbench(uint8_t tIC, cell_asic_2950 *ic, DATA_TY
                 break;
             case CURR_OC:
                 //represent OC as 30% probability during operation: could be from track layout (power on straight, loss of traction) or connection unreliability
-                ic[curr_ic].iacc.i1acc = probability_check(30) ? register_2950_value_from_current(base_current, ic) : register_2950_value_from_current((float)(MAX_CURRENT), ic);
+                ic[curr_ic].iacc.i1acc = probability_check(30) ? register_2950_value_from_current((float)(MAX_CURRENT), ic) : register_2950_value_from_current(base_current, ic);
             default:
                 xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
                 printf("Invalid current emulation state: %d\n", characteristic_2950[curr_ic].current_behavior);
@@ -77,7 +77,7 @@ void adBms2950_read_acc_ivbat_testbench(uint8_t tIC, cell_asic_2950 *ic, DATA_TY
                 break;
             case VOLT_OV:
                 //represent OV as 30% probability - likely would only happen during charging
-                ic[curr_ic].vbacc.vb1acc = probability_check(30) ? (uint32_t)(register_2950_value_from_voltage((uint32_t)(MAX_CURRENT - 100 - (5 * current_time_ms / 1000)), ic)) : register_2950_value_from_voltage((uint32_t)(MAX_CURRENT), ic);
+                ic[curr_ic].vbacc.vb1acc = probability_check(30) ? (uint32_t)(register_2950_value_from_voltage(, ic)) : register_2950_value_from_voltage(MAX_CURRENT), ic);
             default:
                 xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
                 printf("Invalid current emulation state: %d\n", characteristic_2950[curr_ic].current_behavior);

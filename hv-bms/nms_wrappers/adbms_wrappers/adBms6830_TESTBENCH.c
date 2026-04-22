@@ -4,10 +4,13 @@
 #include <pthread.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
 
-#include "semphr.h"
 #include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
 
 //Analog-Devices-related includes
 #include "adBms6830Driver.h"
@@ -20,14 +23,22 @@ extern SemaphoreHandle_t ioMutexHandle;
 
 extern emulated_adbms_6830 characteristic_6830[ADBMS_6830_IC_NUM];
 
+static inline float cell_voltage_adjuster(uint32_t millis) {return ((0.05 * (float)(millis)) / (1000 * 60));} //cells lose 0.05V per minute in normal operation
+static inline bool probability_check(int percent) {return rand() < ((percent * RAND_MAX) / 100);}
  
 void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP group) {
-    for(uint8_t curr_ic = 0; curr_ic < tIC; curr_ic++) 
+    uint32_t current_time_ms = pdTICKS_TO_MS(xTaskGetTickCount());
+    for (uint8_t curr_ic = 0; curr_ic < tIC; curr_ic++) 
     {
         int16_t altered_voltages[CELL];   
         memcpy(altered_voltages, &optimal_voltages.ac_codes, CELL * sizeof(int16_t));
         for (int cell = 0; cell < CELL; cell++) {
-            altered_voltages[cell] -= (rand() % 100); //fluctates cell voltages
+            altered_voltages[cell] -= (rand() % 100); //fuzzes cell voltages mildly
+            #ifndef CHARGING_TEST
+            altered_voltages[cell] -= VOLTAGE_TO_ADC_CODE(cell_voltage_adjuster(current_time_ms));
+            #else
+            
+            #endif
         }
         switch (characteristic_6830[curr_ic].volt_behavior)
         {
@@ -68,15 +79,15 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
         {
         case PEC_NORMAL:
             //low probability of failing interference
-            ic[curr_ic].cccrc.acell_pec = (uint8_t)(rand() > 0.03 * RAND_MAX);
+            ic[curr_ic].cccrc.acell_pec = (uint8_t)(probability_check(PEC_NORMAL_PROB));
             break;
         case PEC_SLIGHT_INTEFERENCE:
             //slight probability of failing interference
-            ic[curr_ic].cccrc.acell_pec = (uint8_t)(rand() > 0.15 * RAND_MAX);
+            ic[curr_ic].cccrc.acell_pec = (uint8_t)(probability_check(PEC_SLIGHT_PROB));
             break;
         case PEC_HEAVY_INTERFERENCE:
-            //extrodinarily statistically significant probability of failing interference
-            ic[curr_ic].cccrc.acell_pec = (uint8_t)(rand() > 0.40 * RAND_MAX);
+            //statistically significant probability of failing interference
+            ic[curr_ic].cccrc.acell_pec = (uint8_t)(probability_check(PEC_HEAVY_PROB));
             break;
         default:
             xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
@@ -139,15 +150,15 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
         {
         case PEC_NORMAL:
             //low probability of failing interference
-            ic[curr_ic].cccrc.aux_pec = (uint8_t)(rand() < 0.03 * RAND_MAX);
+            ic[curr_ic].cccrc.aux_pec = (uint8_t)(probability_check(3));
             break;
         case PEC_SLIGHT_INTEFERENCE:
             //slight probability of failing interference
-            ic[curr_ic].cccrc.aux_pec = (uint8_t)(rand() < 0.15 * RAND_MAX);
+            ic[curr_ic].cccrc.aux_pec = (uint8_t)(probability_check(15));
             break;
         case PEC_HEAVY_INTERFERENCE:
             //extrodinarily statistically significant probability of failing interference
-            ic[curr_ic].cccrc.aux_pec = (uint8_t)(rand() < 0.40 * RAND_MAX);
+            ic[curr_ic].cccrc.aux_pec = (uint8_t)(probability_check(40));
             break;
         default:
             xSemaphoreTake(ioMutexHandle, portMAX_DELAY);

@@ -19,7 +19,6 @@
 /* USER CODE END Header */
 
 /* USER CODE BEGIN Includes */
-#include "bms_util.h"
 #include "adBms2950Driver.h"
 #include "adBms6830Driver.h"
 #include "adBms6830PrintResult.h"
@@ -36,6 +35,8 @@
 
 #else
 #include "adBms6830_TESTBENCH.h"
+#include "adBms2950_TESTBENCH.h"
+#include "bms_test.h"
 #endif
 
 #include "main.h"
@@ -946,8 +947,11 @@ void chargingTask(void *argument)
 
       if (bmsFaults != 0)
       {
+        #ifndef TESTBENCH
         adBms6830WriteData(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0], WRPWMA, Pwm, A);
         adBms6830WriteData(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0], WRPWMB, Pwm, B);
+        #else
+        #endif
       }
       else
       {
@@ -1013,6 +1017,8 @@ void peripheralsInit(void)
   HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_SET);
   canInit(CAN_TX_QUEUE_SIZE, CAN_RX_QUEUE_SIZE);
   setvbuf(stdin, NULL, _IONBF, 0);
+  #else
+  //may want to put CAN loggers here?
   #endif
 
 }
@@ -1031,14 +1037,20 @@ void mainTask(void *argument)
   // Create event flags for charging mode
   charging_evt_id = xEventGroupCreate();
 
-  dischargingJustEnabled = DISCHARGE_JUST_ENABLED;
+  
+  dischargingJustEnabled = DISCHARGE_JUST_ENABLED; 
   xEventGroupSetBits(charging_evt_id, EVENT_FLAG_CHARGING_DISABLE);
   faultLatchTimerHandle = xTimerCreate("faultLatchTimer",
                                        pdMS_TO_TICKS(500),
                                        pdFALSE,
                                        NULL,
                                        bmsFaultHandle);
-
+  xTaskCreate(testbench_task,
+              "testbench_task",
+              configMINIMAL_STACK_SIZE * 2,
+              NULL,
+              PRIORITY_LOW,
+              NULL);
   xTaskCreate(bmsDataCanTxTask,
               "bmsDataCanTxTask",
               configMINIMAL_STACK_SIZE,

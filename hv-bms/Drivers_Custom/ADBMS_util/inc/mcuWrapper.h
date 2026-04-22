@@ -23,10 +23,12 @@ and its licensor.
 #include "common.h"
 
 #include "main.h"
+
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_it.h"
 #include "stm32f4xx_hal_gpio.h"
+
 
 extern SPI_HandleTypeDef hspi1;         /* Mcu dependent SPI handler */
 extern UART_HandleTypeDef huart1;       /* Mcu dependent UART handler */
