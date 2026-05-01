@@ -67,7 +67,7 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
             break;
         default:
             xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
-            printf("Invalid PEC strength setting in emulation: %d\n", characteristic_6830[curr_ic].signal_behavior);
+            printf("Invalid PEC strength setting in 6830 emulation, exiting application: %d\n", characteristic_6830[curr_ic].signal_behavior);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
             break;
@@ -120,7 +120,7 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
             break;
         default:
             xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
-            printf("Invalid PEC strength setting in emulation: %d\n", characteristic_6830[curr_ic].signal_behavior);
+            printf("Invalid PEC strength setting in 6830 emulation, exiting application: %d\n", characteristic_6830[curr_ic].signal_behavior);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
             break;

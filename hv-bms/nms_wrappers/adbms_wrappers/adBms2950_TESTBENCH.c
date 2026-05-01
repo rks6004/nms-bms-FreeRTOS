@@ -51,7 +51,7 @@ void adBms2950_read_acc_ivbat_testbench(uint8_t tIC, cell_asic_2950 *ic, DATA_TY
                 break;
             default:
                 xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
-                printf("Invalid PEC strength setting in emulation, exiting application: %d\n", characteristic_2950[curr_ic].signal_behavior);
+                printf("Invalid PEC strength setting in 2950 emulation, exiting application: %d\n", characteristic_2950[curr_ic].signal_behavior);
                 xSemaphoreGive(ioMutexHandle);
                 exit(EXIT_FAILURE);
                 break;

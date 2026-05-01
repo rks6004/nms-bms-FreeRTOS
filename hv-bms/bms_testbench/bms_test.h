@@ -7,7 +7,7 @@
 #include "adBms6830Data.h"
 
 #define IO_TIMEOUT pdMS_TO_TICKS(2000) //2 seconds
-#define EVENT_TIMEOUT (TEST_STREAM_MAX_LENGTH_MS / 1000) + pdMS_TO_TICKS(500) //gives a 0.5s buffer from when largest trace ends 
+#define EVENT_TIMEOUT (TEST_STREAM_MAX_LENGTH_MS) + 500 //gives a 0.5s buffer from when largest trace ends 
 
 //line size calculated from longest string being 999995 milliseconds (resolution up to 50 ms) for timestamp 
 //and -999999 (or any arrangement of decimal point) for value -  17. Round up to nearest power of 2 -> 32

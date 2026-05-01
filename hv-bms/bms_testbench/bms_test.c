@@ -62,27 +62,25 @@ void testbench_init(void) {
     #endif
 
     #if VOLTAGE_TEST
-        test_setup->voltage_testing = test_setup->charging_testing ? VOLT_OV : VOLT_UV;
+        test_setup->voltage_testing = VOLTAGE_TEST;
     #else
         test_setup->voltage_testing = VOLT_NORMAL;
     #endif
 
     #if CURRENT_TEST
-        test_setup->current_testing = CURR_OC;
+        test_setup->current_testing = CURRENT_TEST;
     #else
         test_setup->current_testing = CURR_NORMAL;
     #endif
 
     #if TEMP_TEST
-        test_setup->temp_testing = TEMP_OT;
+        test_setup->temp_testing = TEMP_TEST;
     #else
         test_setup->temp_testing = TEMP_NORMAL;
     #endif
 
-    #if SIGNAL_TEST == 3 //PEC_HEAVY_INTERFERENCE
-        test_setup->pec_testing = PEC_HEAVY_INTERFERENCE;
-    #elif SIGNAL_TEST == 2 //PEC_SLIGHT_INTERFERENCE
-        test_setup->pec_testing = PEC_SLIGHT_INTERFERENCE;
+    #if SIGNAL_TEST
+        test_setup->pec_testing = SIGNAL_TEST;
     #else
         test_setup->pec_testing = PEC_NORMAL;
     #endif
@@ -120,13 +118,19 @@ void testbench_init(void) {
 
     //PEC errors generated randomly, no need to grab files
 
-    testbench_datastream* current_datastream = pvPortMalloc((size_t)(MAX_SIZE_PER_DATASTREAM_LINE * (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION)));
+    testbench_datastream* current_datastream = pvPortMalloc(sizeof(testbench_datastream));
+    current_datastream->timestamps = pvPortMalloc((size_t)(sizeof(uint32_t) * (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION)));
+    current_datastream->values = pvPortMalloc((size_t)(sizeof(int32_t) * (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION)));
     get_vehicle_testbench_data(curr_filename, current_datastream);
 
-    testbench_datastream* voltage_datastream = pvPortMalloc((size_t)(MAX_SIZE_PER_DATASTREAM_LINE * (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION)));
+    testbench_datastream* voltage_datastream = pvPortMalloc(sizeof(testbench_datastream));
+    voltage_datastream->timestamps = pvPortMalloc((size_t)(sizeof(uint32_t) * (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION)));
+    voltage_datastream->values = pvPortMalloc((size_t)(sizeof(int32_t) * (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION))); 
     get_vehicle_testbench_data(voltage_filename, voltage_datastream);
 
-    testbench_datastream* temp_datastream = pvPortMalloc((size_t)(MAX_SIZE_PER_DATASTREAM_LINE * (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION)));
+    testbench_datastream* temp_datastream = pvPortMalloc(sizeof(testbench_datastream));
+    temp_datastream->timestamps = pvPortMalloc((size_t)(sizeof(uint32_t) * (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION)));
+    temp_datastream->values = pvPortMalloc((size_t)(sizeof(int32_t) * (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION))); 
     get_vehicle_testbench_data(temp_filename, temp_datastream);
 
     //as of right now, writing the same traces to all ADBMS chips, can revise in future to target specific segments if needed
@@ -138,6 +142,7 @@ void testbench_init(void) {
     for (int ic = 0; ic < ADBMS_6830_IC_NUM; ic++) {
         characteristic_6830[ic].temp_data = temp_datastream;
         characteristic_6830[ic].voltage_data = voltage_datastream;
+        characteristic_6830[ic].signal_behavior = test_setup->pec_testing;
     }
     return;
 }
@@ -215,17 +220,16 @@ int get_vehicle_testbench_data(char* filepath, testbench_datastream* datastream)
     printf("File being parsed: %s\n", filepath);
     FILE* fptr;
     fptr = fopen(filepath, "r");
-    if (fptr != NULL) {
-        char line[MAX_SIZE_PER_DATASTREAM_LINE + 2] = NULL; //to accomodate newline and null terminator
-        char* ret = fgets(line, MAX_SIZE_PER_DATASTREAM_LINE + 2, fptr); //should terminate 
+    if (fptr != NULL && datastream != NULL) {
+        char line[MAX_SIZE_PER_DATASTREAM_LINE];
         uint16_t counter = 0;
-        while (line != NULL) {
+        while (fgets(line, MAX_SIZE_PER_DATASTREAM_LINE, fptr) != NULL) {
             char* timestamp_field = strtok(line, ",");
             char* value_field = strtok(NULL, ",\n\r"); // strip carriage return and newline
             printf("Parsed: %s, %s\n", timestamp_field, value_field);
             if (timestamp_field != NULL && value_field != NULL) {
                 // Bounds check to prevent buffer overflow
-                if (counter >= MAX_SIZE_PER_DATASTREAM_LINE) {
+                if (counter >= (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION)) {
                     printf("Warning: datastream buffer full, stopping at %d entries\n", counter);
                     break;
                 }
@@ -234,8 +238,8 @@ int get_vehicle_testbench_data(char* filepath, testbench_datastream* datastream)
                 counter++;
             }
             
-            ret = fgets(line, MAX_SIZE_PER_DATASTREAM_LINE + 2, fptr);
         }
+        printf("Parsed all lines for %s.\n", filepath);
         fclose(fptr);
     }
     else {
@@ -253,32 +257,58 @@ void testbench_exit(void* argument) {
                         pdTRUE,
                         portMAX_DELAY);
     
-        // Free malloc'd memory
-    if (test_setup != NULL) {
-        vPortFree(test_setup);
-        test_setup = NULL;
-    }
     
+    // Free current_datastream (all ICs reference the same pointer)
     if (characteristic_2950[0].current_data != NULL) {
-        vPortFree(characteristic_2950[0].current_data);
+        testbench_datastream* current_data = characteristic_2950[0].current_data;
+        if (current_data->timestamps != NULL) {
+            vPortFree(current_data->timestamps);
+        }
+        if (current_data->values != NULL) {
+            vPortFree(current_data->values);
+        }
+        vPortFree(current_data);
+        
+        // Null out all references
         for (int ic = 0; ic < ADBMS_2950_IC_NUM; ic++) {
             characteristic_2950[ic].current_data = NULL;
         }
     }
     
+    // Free voltage_datastream (all ICs reference the same pointer)
     if (characteristic_6830[0].voltage_data != NULL) {
-        vPortFree(characteristic_6830[0].voltage_data);
+        testbench_datastream* voltage_data = characteristic_6830[0].voltage_data;
+        if (voltage_data->timestamps != NULL) {
+            vPortFree(voltage_data->timestamps);
+        }
+        if (voltage_data->values != NULL) {
+            vPortFree(voltage_data->values);
+        }
+        vPortFree(voltage_data);
+        
+        // Null out all references
         for (int ic = 0; ic < ADBMS_6830_IC_NUM; ic++) {
             characteristic_6830[ic].voltage_data = NULL;
         }
     }
     
+    // Free temp_datastream (all ICs reference the same pointer)
     if (characteristic_6830[0].temp_data != NULL) {
-        vPortFree(characteristic_6830[0].temp_data);
+        testbench_datastream* temp_data = characteristic_6830[0].temp_data;
+        if (temp_data->timestamps != NULL) {
+            vPortFree(temp_data->timestamps);
+        }
+        if (temp_data->values != NULL) {
+            vPortFree(temp_data->values);
+        }
+        vPortFree(temp_data);
+        
+        // Null out all references
         for (int ic = 0; ic < ADBMS_6830_IC_NUM; ic++) {
             characteristic_6830[ic].temp_data = NULL;
         }
     }
+
     vTaskDelete(NULL);
 }
 
