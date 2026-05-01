@@ -1,3 +1,6 @@
+#ifndef ADBMS6830_TESTBENCH_H
+#define ADBMS6830_TESTBENCH_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -67,37 +70,14 @@ SAMPLE SEGMENT STRUCTS FOR TESTING
 ====================================
 */
 
-const int16_t optimal_cell_voltage_adc = VOLTAGE_TO_ADC_CODE(OPTIMAL_CELL_VOLTAGE);
-//4.15 V across all cells in segment when translated
-const acv_ optimal_voltages = {
-    .ac_codes = {
-        optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //A
-        optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //B
-        optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //C
-        optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //D
-        optimal_cell_voltage_adc, optimal_cell_voltage_adc, optimal_cell_voltage_adc, //E
-        optimal_cell_voltage_adc                                                      //F
-    }
-};
-
-const cell_temps_ optimal_temps = {
-    .cell_temps = {
-        (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, //A
-        (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, //B
-        (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, (float)OPTIMAL_CELL_TEMP, //C
-        (float)OPTIMAL_CELL_TEMP                                                      //D 
-    }
-};
-
-const int16_t optimal_cell_temp_adc = 0; //derived from OPTIMAL_CELL_TEMP, but calculated seperately due to inability to use math functions in precompilation
-const ax_ optimal_temps_adcs = {
-    .a_codes = {
-        optimal_cell_temp_adc, optimal_cell_temp_adc, optimal_cell_temp_adc,    //A
-        optimal_cell_temp_adc, optimal_cell_temp_adc, optimal_cell_temp_adc,    //B
-        optimal_cell_temp_adc, optimal_cell_temp_adc, optimal_cell_temp_adc,    //C
-        optimal_cell_temp_adc, optimal_cell_temp_adc, optimal_cell_temp_adc     //D
-    }
-};
+// These const arrays are now defined in adBms6830_TESTBENCH_globals.c
+// to avoid multiple definition errors when this header is included
+// in multiple translation units.
+extern const int16_t optimal_cell_voltage_adc;
+extern const acv_ optimal_voltages;
+extern const cell_temps_ optimal_temps;
+extern const int16_t optimal_cell_temp_adc;
+extern const ax_ optimal_temps_adcs;
 
 void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP group);
 
@@ -106,3 +86,4 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
 
 
 
+#endif //header guard

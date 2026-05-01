@@ -332,7 +332,7 @@ void adBms6830ReadData(uint8_t tIC, cell_asic_6830 *ic, uint8_t cmd_arg[2], TYPE
         xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
         printf("Unrecognized 6830 Read type for testbench: %d\n", type);
         exit(EXIT_FAILURE);
-        xSemaphoreTake(ioMutexHandle);
+        xSemaphoreGive(ioMutexHandle);
     }
   #endif
 }

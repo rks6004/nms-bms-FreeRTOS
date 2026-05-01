@@ -226,6 +226,7 @@ uint32_t getTimCount()
  *
  *******************************************************************************
 */
+#ifndef TESTBENCH
 void adBmsWakeupIc(uint8_t total_ic)
 {
   for (uint8_t ic = 0; ic < total_ic; ic++)
@@ -235,6 +236,7 @@ void adBmsWakeupIc(uint8_t total_ic)
     Delay_ms(WAKEUP_DELAY);
   }
 }
+#endif
 
 //2950 functions
 
@@ -274,6 +276,7 @@ void Delay_us(uint32_t delay)
  *
  *******************************************************************************
 */
+#ifndef TESTBENCH
 void adBmsRawWriteRead(uint8_t total_ic, uint8_t *tx_data, uint8_t *rx_data, uint8_t size)
 {
   adBmsCsLow();
@@ -281,6 +284,7 @@ void adBmsRawWriteRead(uint8_t total_ic, uint8_t *tx_data, uint8_t *rx_data, uin
   HAL_SPI_Receive(hspi, rx_data, size, SPI_TIME_OUT);
   adBmsCsHigh();
 }
+#endif
 
 /**
 *******************************************************************************

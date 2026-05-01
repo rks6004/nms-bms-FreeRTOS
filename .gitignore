@@ -69,3 +69,6 @@ hv-bms/*
 !hv-bms/nms_wrappers/
 !hv-bms/README.md
 !hv-bms/bms_testbench
+
+#dependency graph extension
+.dependencygraph

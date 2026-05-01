@@ -71,6 +71,7 @@ void adBms6830_init_config(uint8_t tIC, cell_asic_6830 *ic)
  */
 void adBms6830_init_measurements(uint8_t tIC, cell_asic_6830 *ic)
 {
+  #ifndef TESTBENCH
   // Wake up IC
   adBmsWakeupIc(tIC);
   // Send ADCV command to initialize C-ADCs conversions (check datasheet for more details)
@@ -82,6 +83,7 @@ void adBms6830_init_measurements(uint8_t tIC, cell_asic_6830 *ic)
   // Send ADSV command to initialize S-ADCs conversions (check datasheet for more details)
   adBms6830_Adsv(CONTINUOUS, DCP_OFF, OW_OFF_ALL_CH);
   Delay_ms(8); // ADCs are updated at their conversion rate is 8ms
+  #endif
 }
 
 /**
@@ -124,8 +126,8 @@ void adBms6830_init_charging_measurements(uint8_t tIC, cell_asic_6830 *ic)
   adBmsWakeupIc(tIC);
   // Send ADCV command to initialize C-ADCs conversions (check datasheet for more details)
   adBms6830_Adcv(RD_ON, CONTINUOUS, DCP_OFF, RSTF_OFF, OW_OFF_ALL_CH);
-  #endif
   Delay_ms(1); // ADCs are updated at their conversion rate is 1ms
+  #endif
 }
 
 /**
@@ -148,9 +150,11 @@ void adBms6830_read_avgcell_voltages(uint8_t tIC, cell_asic_6830 *ic)
  */
 void adBms6830_start_aux_voltage_measurment(uint8_t tIC, cell_asic_6830 *ic)
 {
+  #ifndef TESTBENCH
   // Initialize Auxiliary ADC conversion (check the datasheet for more details) and poll the ADC
   adBms6830_Adax(AUX_OW_OFF, PUP_DOWN, AUX_ALL);
   adBmsPollAdc(PLAUX1);
+  #endif
 }
 
 /**

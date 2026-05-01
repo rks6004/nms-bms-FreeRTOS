@@ -52,8 +52,9 @@ void adBms2950_Adi1(uint8_t tIC, cell_asic_2950 *ic, RD rd, OPT opt, cmd_descrip
   cmd[0] = 0x02 + rd;
   //  cmd[1] = (cont<<7) + (ow & 0x03) + 0x60;
   cmd[1] = ((opt & 0x08) << 4) + ((opt & 0x04) << 2) + (opt & 0x03) + 0x60; //(CC position)7- (OPT position)3 = 4 (Shift)
-
+  #ifndef TESTBENCH
   spiSendCmd2950(tIC, &ic[0], cmd);
+  #endif
 }
 
 /**
@@ -79,7 +80,9 @@ void adBms2950_Adi2(uint8_t tIC, cell_asic_2950 *ic, OPT opt, cmd_description *c
   cmd[0] = 0x01;
   //  cmd[1] = (cont<<7) + (ow &0x03) + 0x68;
   cmd[1] = ((opt & 0x08) << 4) + ((opt & 0x04) << 2) + (opt & 0x03) + 0x68; //(CC position)7- (OPT position)3 = 4 (Shift)
+  #ifndef TESTBENCH
   spiSendCmd2950(tIC, &ic[0], cmd);
+  #endif
 }
 
 /**
@@ -104,7 +107,9 @@ void adBms2950_Adv(uint8_t tIC, cell_asic_2950 *ic, OW ow, VCH vch)
   uint8_t cmd[2];
   cmd[0] = 0x04;
   cmd[1] = (ow << 6) + 0x30 + (vch & 0x0F);
+  #ifndef TESTBENCH  
   spiSendCmd2950(tIC, &ic[0], cmd);
+  #endif
 }
 
 /**
@@ -145,6 +150,7 @@ void adBms2950_Adaux(uint8_t tIC, cell_asic_2950 *ic, ACH ach, cmd_description *
 *******************************************************************************
 */
 // void adBms2950_Stcomm(void)
+#ifndef TESTBENCH
 void adBms2950_Stcomm(uint8_t tIC, cell_asic_2950 *ic)
 {
   adBms2950_IncCalCmdCounter(tIC, ic);
@@ -152,6 +158,7 @@ void adBms2950_Stcomm(uint8_t tIC, cell_asic_2950 *ic)
   spiWriteBytes(13, &STCOMM[0]);
   adBmsCsHigh();
 }
+#endif
 
 /**
 *******************************************************************************

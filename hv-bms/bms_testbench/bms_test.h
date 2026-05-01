@@ -1,3 +1,7 @@
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef BMS_TEST_H
+#define BMS_TEST_H
+
 #include "bms_util.h"
 #include "adBms2950Data.h"
 #include "adBms6830Data.h"
@@ -81,3 +85,5 @@ void testbench_init(void);
 void testbench_task(void* argument);
 
 int get_vehicle_testbench_data(char* filepath, testbench_datastream* datastream);
+
+#endif //header guard

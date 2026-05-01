@@ -1,4 +1,4 @@
-#define TEST_DATA_DIR "/bms_testbench/test_data"
+#define TEST_DATA_DIR "./bms_testbench/test_data"
 
 
 #define PEC_NORMAL_PROB 0

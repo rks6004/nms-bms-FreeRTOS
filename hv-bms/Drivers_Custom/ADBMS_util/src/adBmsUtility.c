@@ -432,9 +432,11 @@ uint8_t *data
       cmd[cmd_index] = (uint8_t)data_pec;
       cmd_index = cmd_index + 1;
     }
+    #ifndef TESTBENCH
     adBmsCsLow();
     spiWriteBytes( CMD_LEN, &cmd[0]);
     adBmsCsHigh();
+    #endif
   }
   free(cmd);
 }

@@ -17,8 +17,12 @@ and its licensor.
 *  @{
 */
 #include "adBms6830PrintResult.h"
+
+#ifdef TESTBENCH
 #include "bms_util.h"
+#include "FreeRTOS.h"
 #include "semphr.h"
+#endif
 
 extern SemaphoreHandle_t ioMutexHandle; //make sure to use this as control for any function actually used here in TESTBENCH
 

@@ -155,6 +155,11 @@ int16_t chargeCurrent; //A
 ChargingState chargeState;
 ChargeEnableState chargerEnable;
 
+EventGroupHandle_t charging_evt_id;
+SemaphoreHandle_t bmsMutexHandle;
+SemaphoreHandle_t ioMutexHandle;
+TimerHandle_t faultLatchTimerHandle;
+
 int bmsMode = BMS_MODE_DISCHARGE;
 int chargingJustEnabled = CHARGE_REGULAR_OPERATION;
 int dischargingJustEnabled = DISCHARGE_REGULAR_OPERATION;
@@ -166,6 +171,93 @@ void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
 #endif
 /* USER CODE BEGIN PFP */
+
+#ifdef TESTBENCH
+//all of these functions are provided as templates here as a result of various #defines being set
+//for the POSIX simulator's own FreeRTOSConfig.h
+
+//they honestly should be placed in a better spot, but for now they'll be fine here.
+
+
+/**
+ * @brief vAssertCalled - FreeRTOS assertion failure handler for TESTBENCH builds
+ * 
+ * This function is called by configASSERT() macro when a FreeRTOS assertion fails.
+ * It is only compiled for TESTBENCH builds since the Posix_GCC FreeRTOSConfig.h
+ * defines configASSERT() to call this function. Without this implementation,
+ * linker errors occur with undefined reference to vAssertCalled in FreeRTOS
+ * source files (event_groups.c, task.c, etc.).
+ * 
+ * @param pcFileName Pointer to the filename where assertion failed
+ * @param ulLine Line number where assertion failed
+ */
+void vAssertCalled( const char * const pcFileName, unsigned long ulLine )
+{
+    ( void ) pcFileName;  /* Parameter not used. */
+    ( void ) ulLine;      /* Parameter not used. */
+
+    /* Print assertion failure message if mutex is available */
+    if( xSemaphoreTake( ioMutexHandle, pdMS_TO_TICKS(IO_TIMEOUT) ))
+    {
+        printf( "ASSERTION FAILED in %s at line %lu\n", pcFileName, ulLine );
+        xSemaphoreGive( ioMutexHandle );
+    }
+
+    /* Enter an infinite loop to stop execution */
+    taskDISABLE_INTERRUPTS();
+    // for( ;; )
+    // {
+    //     __asm volatile( "NOP" );
+    // }
+    exit(EXIT_FAILURE);
+}
+
+/* Required for configUSE_MALLOC_FAILED_HOOK = 1 */
+void vApplicationMallocFailedHook( void ) {
+    taskDISABLE_INTERRUPTS();
+    exit(EXIT_FAILURE);
+}
+
+/* Required for configUSE_IDLE_HOOK = 1 */
+void vApplicationIdleHook( void ) {
+    /* Handle idle behavior here if needed */
+}
+
+/* Required for configUSE_TICK_HOOK = 1 */
+void vApplicationTickHook( void ) {
+    /* Handle tick behavior here if needed */
+}
+
+/* Required for configUSE_DAEMON_TASK_STARTUP_HOOK = 1 */
+void vApplicationDaemonTaskStartupHook( void ) {
+    /* Handle timer service startup here if needed */
+}
+
+/* Required for configSUPPORT_STATIC_ALLOCATION = 1 */
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer,
+                                    StackType_t **ppxIdleTaskStackBuffer,
+                                    uint32_t *pulIdleTaskStackSize ) {
+    static StaticTask_t xIdleTaskTCB;
+    static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
+
+    *ppxIdleTaskTCBBuffer = &xIdleTaskTCB;
+    *ppxIdleTaskStackBuffer = uxIdleTaskStack;
+    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+
+/* Required for configSUPPORT_STATIC_ALLOCATION = 1 */
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer,
+                                     StackType_t **ppxTimerTaskStackBuffer,
+                                     uint32_t *pulTimerTaskStackSize ) {
+    static StaticTask_t xTimerTaskTCB;
+    static StackType_t uxTimerTaskStack[ configTIMER_TASK_STACK_DEPTH ];
+
+    *ppxTimerTaskTCBBuffer = &xTimerTaskTCB;
+    *ppxTimerTaskStackBuffer = uxTimerTaskStack;
+    *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
+}
+#endif /* TESTBENCH */
+
 #ifdef __GNUC__
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 #else
@@ -1053,7 +1145,6 @@ void mainTask(void *argument)
 {
   // RTOS Objects initialization
   bmsMutexHandle = xSemaphoreCreateMutex();
-  ioMutexHandle = xSemaphoreCreateMutex();
 
   // Create event flags for charging mode
   charging_evt_id = xEventGroupCreate();
@@ -1121,6 +1212,7 @@ int main(void)
   #endif
   peripheralsInit();
   #ifdef TESTBENCH
+  testbench_init();
   for (int i = 0; i < ADBMS_6830_IC_NUM; i++) {
     characteristic_6830[i].ic_data = &ADBMS_6830_IC[i];
   }

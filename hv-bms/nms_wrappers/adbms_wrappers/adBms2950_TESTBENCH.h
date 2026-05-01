@@ -1,3 +1,6 @@
+#ifndef ADBMS2950_TESTBENCH_H
+#define ADBMS2950_TESTBENCH_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -16,3 +19,4 @@ void adBms2950_read_acc_ivbat_testbench(uint8_t tIC, cell_asic_2950 *ic, DATA_TY
 
 
 
+#endif //header guard

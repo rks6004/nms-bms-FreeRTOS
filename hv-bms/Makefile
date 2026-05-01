@@ -106,11 +106,10 @@ Drivers_Custom/ADBMS6830/lib/src/adBms6830GenericType.c \
 Drivers_Custom/ADBMS6830/lib/src/adBms6830ParseCreate.c \
 Drivers_Custom/ADBMS6830/program/src/adBms6830Driver.c \
 Drivers_Custom/ADBMS6830/program/src/adBms6830PrintResult.c \
-Drivers_Custom/ADBMS_common/src/adBmsCommonDriver.c \
 Drivers_Custom/ADBMS_util/src/adBmsCmdList.c \
-Drivers_Custom/ADBMS_util/src/adBmsUtility.c \
 nms_wrappers/adbms_wrappers/adBms2950_TESTBENCH.c \
 nms_wrappers/adbms_wrappers/adBms6830_TESTBENCH.c \
+nms_wrappers/adbms_wrappers/adBms6830_TESTBENCH_globals.c \
 ../FreeRTOS/Source/croutine.c \
 ../FreeRTOS/Source/event_groups.c \
 ../FreeRTOS/Source/list.c \
@@ -123,7 +122,8 @@ nms_wrappers/adbms_wrappers/adBms6830_TESTBENCH.c \
 ../FreeRTOS/Source/timers.c \
 bms_testbench/bms_test.c \
 Core/Src/main.c
-
+# Drivers_Custom/ADBMS_common/src/adBmsCommonDriver.c
+# Drivers_Custom/ADBMS_util/src/adBmsUtility.c
 endif
 
 #######################################
@@ -191,10 +191,45 @@ AS_INCLUDES =  \
 
 else
 #building for testbench simulator
+	ifdef CHARGING_TEST
+	TESTBENCH_DEFS += -DCHARGING_TEST=$(CHARGING_TEST)
+	else
+	TESTBENCH_DEFS += -DCHARGING_TEST=0
+	endif
 
-#C_DEFS likely will need to be updated w/ macros/const vars
-C_DEFS = \
--DTESTBENCH=1
+	ifdef VOLTAGE_TEST
+	TESTBENCH_DEFS += -DVOLTAGE_TEST=$(VOLTAGE_TEST)
+	else
+	TESTBENCH_DEFS += -DVOLTAGE_TEST=0
+	endif
+
+	ifdef CURRENT_TEST
+	TESTBENCH_DEFS += -DCURRENT_TEST=$(CURRENT_TEST)
+	else
+	TESTBENCH_DEFS += -DCURRENT_TEST=0
+	endif
+
+	ifdef SIGNAL_TEST
+	TESTBENCH_DEFS += -DSIGNAL_TEST=$(SIGNAL_TEST)
+	else
+	TESTBENCH_DEFS += -DSIGNAL_TEST=0
+	endif
+
+	ifdef TEMP_TEST
+	TESTBENCH_DEFS += -DTEMP_TEST=$(TEMP_TEST)
+	else
+	TESTBENCH_DEFS += -DTEMP_TEST=0
+	endif
+	
+	#FreeRTOS Configuration Flags
+    TESTBENCH_DEFS += -DprojCOVERAGE_TEST=0
+    TESTBENCH_DEFS += -DprojENABLE_TRACING=0
+
+	#C_DEFS likely will need to be updated w/ macros/const vars
+	C_DEFS = \
+	-DTESTBENCH=1 \
+	$(TESTBENCH_DEFS)
+endif
 
 ifndef TESTBENCH
 # C includes
@@ -221,6 +256,7 @@ else
 C_INCLUDES = \
 -I../FreeRTOS/Source/include \
 -I../FreeRTOS/Source/portable/ThirdParty/GCC/Posix \
+-I../FreeRTOS/Demo/Posix_GCC/ \
 -Ibms_testbench \
 -ICore/Inc \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
@@ -244,7 +280,7 @@ ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffuncti
 else
 ASFLAGS =
 endif
-CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -Werror=implicit-function-declaration -fdata-sections -ffunction-sections
+CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
 
 ifeq ($(DEBUG), 1)
 	ifdef TESTBENCH
@@ -277,7 +313,7 @@ ifndef TESTBENCH
 # default action: build all
 all: $(TARGET).elf $(TARGET).hex $(TARGET).bin
 else
-all: $(TARGET).elf
+all: $(BUILD_DIR)/$(TARGET).elf
 endif
 
 #######################################
