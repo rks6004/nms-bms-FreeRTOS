@@ -121,7 +121,7 @@ nms_wrappers/adbms_wrappers/adBms6830_TESTBENCH.c \
 ../FreeRTOS/Source/stream_buffer.c \
 ../FreeRTOS/Source/tasks.c \
 ../FreeRTOS/Source/timers.c \
-../FreeRTOS/Demo/Posix_GCC/bms_testbench/bms_test.c \
+bms_testbench/bms_test.c \
 Core/Src/main.c
 
 endif
@@ -195,7 +195,6 @@ else
 #C_DEFS likely will need to be updated w/ macros/const vars
 C_DEFS = \
 -DTESTBENCH=1
-endif
 
 ifndef TESTBENCH
 # C includes
@@ -222,7 +221,7 @@ else
 C_INCLUDES = \
 -I../FreeRTOS/Source/include \
 -I../FreeRTOS/Source/portable/ThirdParty/GCC/Posix \
--I../FreeRTOS/Demo/Posix_GCC/bms_testbench \
+-Ibms_testbench \
 -ICore/Inc \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
 -IDrivers/CMSIS/Include \
@@ -239,11 +238,6 @@ C_INCLUDES = \
 -IDrivers_Custom/ADBMS_common/inc \
 -IDrivers_Custom/ADBMS_util/inc
 endif
-
-# ifdef TESTBENCH
-# C_INCLUDES := $(filter-out Drivers_Custom/ADBMS_util/inc/mcuWrapper.h, $(C_INCLUDES))
-# endif
-
 # compile gcc flags
 ifndef TESTBENCH
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
@@ -281,9 +275,9 @@ endif
 
 ifndef TESTBENCH
 # default action: build all
-all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
+all: $(TARGET).elf $(TARGET).hex $(TARGET).bin
 else
-all: $(BUILD_DIR)/$(TARGET).elf
+all: $(TARGET).elf
 endif
 
 #######################################

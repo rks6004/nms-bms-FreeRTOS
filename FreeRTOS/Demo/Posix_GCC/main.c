@@ -69,6 +69,8 @@
 #include "console.h"
 #include "timers.h"
 
+#include "bms_test.h"
+
 #if ( projENABLE_TRACING == 1 )
     #include <trcRecorder.h>
 #endif
@@ -186,9 +188,7 @@ int main( void )
     #elif ( mainSELECTED_APPLICATION == BMS_TEST)
     {
         console_print("Starting BMS test in main\n");
-        int ret = bms_file_reading_test();
-        console_print("Func returned: %d\n", ret);
-        
+        return EXIT_SUCCESS;
     }
     #else
     {

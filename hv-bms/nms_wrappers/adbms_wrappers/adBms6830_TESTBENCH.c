@@ -6,11 +6,11 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <string.h>
-#include <stdint.h>
 
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "task.h"
+#include "event_groups.h"
 
 //Analog-Devices-related includes
 #include "adBms6830Driver.h"
@@ -20,16 +20,22 @@
 #include "bms_test.h"
 
 extern SemaphoreHandle_t ioMutexHandle;
-
+extern EventGroupHandle_t charging_evt_id;
 extern emulated_adbms_6830 characteristic_6830[ADBMS_6830_IC_NUM];
 
 static inline float cell_voltage_adjuster(uint32_t millis) {return ((0.05 * (float)(millis)) / (1000 * 60));} //cells lose 0.05V per minute in normal operation
 static inline bool probability_check(int percent) {return rand() < ((percent * RAND_MAX) / 100);}
  
 void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP group) {
-    uint32_t current_time_ms = pdTICKS_TO_MS(xTaskGetTickCount());
+    uint32_t data_timer = pdTICKS_TO_MS(xTaskGetTickCount()) % TEST_STREAM_MAX_LENGTH_MS; //datastream will loop if not terminated when EOF of datastream reached
+    uint32_t data_index = (data_timer / TEST_STREAM_TIMING_RESOLUTION);
     for (uint8_t curr_ic = 0; curr_ic < tIC; curr_ic++) 
     {
+        int32_t test_voltage = characteristic_6830->voltage_data->values[data_index];
+        if (test_voltage > INT16_MAX) {
+            test_voltage = INT16_MAX; //ceiling reading for 6830 register datatype
+        }
+        
         int16_t altered_voltages[CELL];   
         memcpy(altered_voltages, &optimal_voltages.ac_codes, CELL * sizeof(int16_t));
         for (int cell = 0; cell < CELL; cell++) {
@@ -60,7 +66,7 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
             }
             break;
         default:
-            xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+            xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
             printf("Invalid voltage emulation state: %d\n", characteristic_6830[curr_ic].volt_behavior);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
@@ -81,7 +87,7 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
             //low probability of failing interference
             ic[curr_ic].cccrc.acell_pec = (uint8_t)(probability_check(PEC_NORMAL_PROB));
             break;
-        case PEC_SLIGHT_INTEFERENCE:
+        case PEC_SLIGHT_INTERFERENCE:
             //slight probability of failing interference
             ic[curr_ic].cccrc.acell_pec = (uint8_t)(probability_check(PEC_SLIGHT_PROB));
             break;
@@ -90,7 +96,7 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
             ic[curr_ic].cccrc.acell_pec = (uint8_t)(probability_check(PEC_HEAVY_PROB));
             break;
         default:
-            xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+            xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
             printf("Invalid PEC strength setting in emulation: %d\n", characteristic_6830[curr_ic].signal_behavior);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
@@ -127,7 +133,7 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
             }
             break;
         default:
-            xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+            xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
             printf("Invalid temperature emulation state: %d\n", characteristic_6830[curr_ic].temp_behavior);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
@@ -141,7 +147,7 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
             memcpy(&(ic[curr_ic].aux.a_codes), altered_voltages, (size_t)(AUX * sizeof(int16_t)));
         }
         else { //E,F not valid groups
-            xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+            xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
             printf("Invalid group access in read_aux: %d\n", group);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
@@ -150,18 +156,18 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
         {
         case PEC_NORMAL:
             //low probability of failing interference
-            ic[curr_ic].cccrc.aux_pec = (uint8_t)(probability_check(3));
+            ic[curr_ic].cccrc.aux_pec = (uint8_t)(probability_check(PEC_NORMAL_PROB));
             break;
-        case PEC_SLIGHT_INTEFERENCE:
+        case PEC_SLIGHT_INTERFERENCE:
             //slight probability of failing interference
-            ic[curr_ic].cccrc.aux_pec = (uint8_t)(probability_check(15));
+            ic[curr_ic].cccrc.aux_pec = (uint8_t)(probability_check(PEC_SLIGHT_PROB));
             break;
         case PEC_HEAVY_INTERFERENCE:
-            //extrodinarily statistically significant probability of failing interference
-            ic[curr_ic].cccrc.aux_pec = (uint8_t)(probability_check(40));
+            //statistically significant probability of failing interference
+            ic[curr_ic].cccrc.aux_pec = (uint8_t)(probability_check(PEC_HEAVY_PROB));
             break;
         default:
-            xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+            xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
             printf("Invalid PEC strength setting in emulation: %d\n", characteristic_6830[curr_ic].signal_behavior);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);

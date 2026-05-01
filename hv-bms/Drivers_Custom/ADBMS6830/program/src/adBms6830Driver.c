@@ -19,6 +19,7 @@ and its licensor.
 
 #include "adBms6830Driver.h"
 #include "math.h"
+#include "main.h"
 
 /**
 *******************************************************************************
@@ -248,9 +249,13 @@ void adBms6830_balance_cells(uint8_t tIC, uint8_t t2950IC, cell_asic_6830* ic)
     }
   }
 
+  #ifndef TESTBENCH
   // Send PWM message to all ICs in the chain
   adBms6830WriteData(tIC, &ic[0], WRPWMA, Pwm, A);
   adBms6830WriteData(tIC, &ic[0], WRPWMB, Pwm, B);
+  #else
+  
+  #endif
 
   // Reset all PWM registers to 0 to not affect next balancing operation
   for(int current_ic = t2950IC; current_ic < tIC; current_ic ++)

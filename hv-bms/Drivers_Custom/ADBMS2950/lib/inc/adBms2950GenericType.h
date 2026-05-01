@@ -41,8 +41,12 @@ Agreement.
 #endif
 
 
+#ifndef TESTBENCH
 void spiSendCmd2950(uint8_t tIC, cell_asic_2950 *ic, uint8_t tx_cmd[2]);
+#endif
 void adBms2950ReadData(uint8_t tIC, cell_asic_2950 *ic, uint8_t cmd_arg[2], DATA_TYPE type, REG_GRP group);
+
+#ifndef TESTBENCH
 void adBms2950WriteData(uint8_t tIC, cell_asic_2950 *ic, uint8_t cmd_arg[2], DATA_TYPE type, REG_GRP group);
 uint32_t adBms2950PollAdc(uint8_t tIC, cell_asic_2950 *ic, uint8_t tx_cmd[2]);
 void adBms2950_Adi1(uint8_t tIC, cell_asic_2950 *ic, RD rd, OPT opt, cmd_description *cmd_des);
@@ -50,6 +54,7 @@ void adBms2950_Adi2(uint8_t tIC, cell_asic_2950 *ic, OPT opt, cmd_description *c
 void adBms2950_Adv(uint8_t tIC, cell_asic_2950 *ic, OW ow, VCH vch);
 void adBms2950_Stcomm(uint8_t tIC, cell_asic_2950 *ic);
 uint8_t adBms2950_CCErrorCheck(uint8_t ic_cc, uint8_t cal_cc);
+#endif
 
 #endif /* __UTILITY_H */
 /** @}*/

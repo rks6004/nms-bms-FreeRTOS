@@ -68,3 +68,4 @@ hv-bms/*
 !hv-bms/Drivers_Custom/
 !hv-bms/nms_wrappers/
 !hv-bms/README.md
+!hv-bms/bms_testbench

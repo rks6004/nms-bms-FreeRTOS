@@ -34,9 +34,12 @@
 #include "gpio.h"
 
 #else
+
 #include "adBms6830_TESTBENCH.h"
 #include "adBms2950_TESTBENCH.h"
 #include "bms_test.h"
+#include "bms_util.h"
+
 #endif
 
 #include "main.h"
@@ -105,7 +108,7 @@
     taskENTER_CRITICAL();                                                                          \
     bmsFault();                                                                                    \ 
     taskEXIT_CRITICAL();                                                                           \
-    xSemaphoreTake(ioMutexHandle, portMAX_DELAY);                                                  \
+    xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);                                                  \
     printf("Fault detected at SEGMENT: %d\n", ic);                                                 \
     xSemaphoreGive(ioMutexHandle);                                                                 \
   } while (0);
@@ -151,15 +154,6 @@ typedef enum
 int16_t chargeCurrent; //A
 ChargingState chargeState;
 ChargeEnableState chargerEnable;
-
-
-SemaphoreHandle_t bmsMutexHandle;
-SemaphoreHandle_t ioMutexHandle;
-TimerHandle_t faultLatchTimerHandle;
-
-
-// Flag to keep track of charging enabled
-EventGroupHandle_t charging_evt_id;
 
 int bmsMode = BMS_MODE_DISCHARGE;
 int chargingJustEnabled = CHARGE_REGULAR_OPERATION;
@@ -359,7 +353,7 @@ void bmsFaultLatch(void)
   #ifndef TESTBENCH
   HAL_GPIO_WritePin(BMS_Fault_GPIO_Port, BMS_Fault_Pin, GPIO_PIN_RESET);
   #else
-  xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+  xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
   printf("BMS Fault Latch Pulled!\n");
   xSemaphoreGive(ioMutexHandle);
   #endif
@@ -379,7 +373,7 @@ void bmsFault(void)
   taskEXIT_CRITICAL();
   
   #ifdef TESTBENCH
-  xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+  xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
   printf("Inverter Disabled due to BMS Fault\n");
   xSemaphoreGive(ioMutexHandle);
   #endif
@@ -430,6 +424,9 @@ void adBms6830_cell_ov_uv_check(void)
       {
         SET_FAULT_SIG(OV, curr_ic);
         bmsFault();
+        #ifdef TESTBENCH
+        xEventGroupSetBits(testbench_evt_id, VOLTAGE_ERROR_BITS);
+        #endif
       }
 
       // UV
@@ -437,6 +434,9 @@ void adBms6830_cell_ov_uv_check(void)
       {
         SET_FAULT_SIG(UV, curr_ic);
         bmsFault();
+        #ifdef TESTBENCH
+        xEventGroupSetBits(testbench_evt_id, VOLTAGE_ERROR_BITS);
+        #endif
       }
     }
   }
@@ -467,6 +467,9 @@ void adBms6830_cell_ot_ut_check(void)
       {
         SET_FAULT_SIG(OT, curr_ic);
         bmsFault();
+        #ifdef TESTBENCH
+        xEventGroupSetBits(testbench_evt_id, TEMP_ERROR_BITS);
+        #endif
       }
 
       // UT
@@ -474,6 +477,9 @@ void adBms6830_cell_ot_ut_check(void)
       {
         SET_FAULT_SIG(UT, curr_ic);
         bmsFault();
+        #ifdef TESTBENCH
+        xEventGroupSetBits(testbench_evt_id, TEMP_ERROR_BITS);
+        #endif
       }
     }
   }
@@ -501,7 +507,10 @@ void adbms2950_pack_oc_check(void)
     encode_can_0x0c3_PACKOC(canBuses[VEHICLE_CAN].converter, 1);
     #endif
     taskEXIT_CRITICAL();
+    #ifdef TESTBENCH
+    xEventGroupSetBits(testbench_evt_id, CURRENT_ERROR_BITS);
     bmsFault();
+    #endif
   }
 }
 #endif // ADBMS_2950_IC_NUM > 0
@@ -719,7 +728,7 @@ void checkAcellPEC(void)
         #endif
         taskEXIT_CRITICAL();
         #ifdef TESTBENCH
-        xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+        xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
         printf("AvgCell PEC Error @ Segment: %d", curr_ic);
         xSemaphoreGive(ioMutexHandle);
         #endif
@@ -747,12 +756,13 @@ void checkAuxPEC(void)
         encode_can_0x0c3_PEC_ERROR(canBuses[VEHICLE_CAN].converter, 1);
         #endif
         taskEXIT_CRITICAL();
+        bmsFault();
         #ifdef TESTBENCH
-        xSemaphoreTake(ioMutexHandle, portMAX_DELAY);
+        xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
         printf("Aux PEC Error @ Segment: %d", curr_ic);
         xSemaphoreGive(ioMutexHandle);
+        xEventGroupSetBits(testbench_evt_id, PEC_ERROR_BITS);
         #endif
-        bmsFault();
       }
     }
     else
@@ -778,7 +788,6 @@ void bmsDataCanTxTask(void *argument)
     packCanTx(CAN_ID_BMS_PACK_DATA, VEHICLE_CAN);
     #else
     #endif
-
     vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
@@ -804,13 +813,17 @@ void dischargingTask(void *argument)
     {
       if (xSemaphoreTake(bmsMutexHandle, pdMS_TO_TICKS(10)))
       {
+        #ifndef TESTBENCH
         // Initialize ADBMS6830 configuration for discharge mode
         adBms6830_init_config(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
+        #endif
 
 #if (ADBMS_2950_IC_NUM > 0) // Conditional init dependent on number of pack monitors
         // Initialize ADBMS2950 configuration
-        adBms2950_init_config(ADBMS_2950_IC_NUM, &ADBMS_2950_IC[0]);
-        #ifndef TESTBENCH //no need to send configuration to emulated registers
+        //maintain this line during TESTBENCH config, as it sets multipliers for voltage & current register calcs.
+        adBms2950_init_config(ADBMS_2950_IC_NUM, &ADBMS_2950_IC[0]); 
+        //no need to send configuration to emulated registers
+        #ifndef TESTBENCH
         // Write configurations to both chips
         adBmsCommonWriteConfig(ADBMS_6830_IC_NUM,
                                ADBMS_2950_IC_NUM,
@@ -849,7 +862,6 @@ void dischargingTask(void *argument)
       adBms6830_read_aux_voltages(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
       // Convert thermistor voltage to temperature
       adBms6830_populate_cell_temps(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
-
 #if (ADBMS_2950_IC_NUM > 0)
       // Read pack voltage and current from ADBMS2950
       adBms2950_read_acc_ivbat(ADBMS_2950_IC_NUM, &ADBMS_2950_IC[0]);
@@ -906,21 +918,26 @@ void chargingTask(void *argument)
     {
       if (xSemaphoreTake(bmsMutexHandle, pdMS_TO_TICKS(10)))
       {
+        #ifndef TESTBENCH
         // Create charging configuration for ADBMS6830
         adBms6830_init_charging_config(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
+        #endif
 
 #if (ADBMS_2950_IC_NUM > 0)
+        #ifndef TESTBENCH
         // Write configurations to both chips
         adBmsCommonWriteConfig(ADBMS_6830_IC_NUM,
                                ADBMS_2950_IC_NUM,
                                &ADBMS_6830_IC[0],
                                &ADBMS_2950_IC[0]);
+        #endif
 #else  // !(ADBMS_2950_IC_NUM > 0)
+        #ifndef TESTBENCH
         adBmsWakeupIc(ADBMS_6830_IC_NUM);
         adBms6830WriteData(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0], WRCFGA, Config, A);
         adBms6830WriteData(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0], WRCFGB, Config, B);
+        #endif
 #endif // !(ADBMS_2950_IC_NUM > 0)
-
         // Function call to send commands to the ADBMS_6830_IC to initialize continuous measurement
         adBms6830_init_charging_measurements(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
         lastConfigUpdate = xTaskGetTickCount();
@@ -942,6 +959,7 @@ void chargingTask(void *argument)
       taskENTER_CRITICAL();
       #ifndef TESTBENCH
       pack_message_vehicle(canBuses[VEHICLE_CAN].converter, CAN_ID_BMS_FAULT, &bmsFaults);
+      #else
       #endif
       taskEXIT_CRITICAL();
 
@@ -955,8 +973,10 @@ void chargingTask(void *argument)
       }
       else
       {
+        #ifndef TESTBENCH
         // Balance cells algorithm
         adBms6830_balance_cells(ADBMS_6830_IC_NUM, ADBMS_2950_IC_NUM, &ADBMS_6830_IC[0]);
+        #endif
       }
 
       adBms6830_start_aux_voltage_measurment(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
@@ -984,10 +1004,11 @@ void chargingTask(void *argument)
       adBms2950_get_data();
 #endif // ADBMS_2950_IC_NUM > 0
 
+      #ifndef TESTBENCH
       // UART PRINTS
       printVoltages(ADBMS_6830_IC_NUM, ADBMS_2950_IC_NUM, &ADBMS_6830_IC[0], AvgCell);
       printCellTemperatures(ADBMS_6830_IC_NUM, ADBMS_2950_IC_NUM, &ADBMS_6830_IC[0]);
-
+      #endif
       xSemaphoreGive(bmsMutexHandle);
     }
     checkBMSFaults();
@@ -1045,18 +1066,17 @@ void mainTask(void *argument)
                                        pdFALSE,
                                        NULL,
                                        bmsFaultHandle);
-  xTaskCreate(testbench_task,
-              "testbench_task",
-              configMINIMAL_STACK_SIZE * 2,
-              NULL,
-              PRIORITY_LOW,
-              NULL);
-  xTaskCreate(bmsDataCanTxTask,
+  
+  
+  #ifndef TESTBENCH
+    xTaskCreate(bmsDataCanTxTask,
               "bmsDataCanTxTask",
               configMINIMAL_STACK_SIZE,
               NULL,
               PRIORITY_LOW,
               NULL);
+  #endif
+
   xTaskCreate(dischargingTask,
               "dischargingTask",
               (configMINIMAL_STACK_SIZE * 2),
@@ -1070,8 +1090,15 @@ void mainTask(void *argument)
               PRIORITY_LOW,
               NULL);
   #ifdef TESTBENCH
+    xTaskCreate(testbench_task,
+              "testbench_task",
+              configMINIMAL_STACK_SIZE * 2,
+              NULL,
+              PRIORITY_LOW,
+              NULL);
     testbench_init();
   #endif
+  
   for (;;)
   {
     #ifndef TESTBENCH

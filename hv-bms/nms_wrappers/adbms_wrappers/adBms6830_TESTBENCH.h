@@ -7,13 +7,14 @@
 
 #include "bms_test.h"
 #include "main.h"
+
 //Analog-Devices-related includes
 #include "adBms6830Driver.h"
 #include "adBms6830Data.h"
 
 //DEFINES
 
-#define OPTIMAL_CELL_VOLTAGE 4.15 //V
+#define OPTIMAL_CELL_VOLTAGE MAX_CELL_VOLTAGE - 0.05 //V
 #define OPTIMAL_CELL_TEMP 25 //deg C, picking ~ambient temp
 
 

@@ -38,6 +38,7 @@ Using the BMS Driver Application can:
 #include "adBms2950_TESTBENCH.h"
 #include "bms_test.h"
 
+#ifndef TESTBENCH
 /**
 *******************************************************************************
 * Function: spiSendCmd
@@ -80,6 +81,7 @@ void spiSendCmd2950(uint8_t tIC, cell_asic_2950 *ic, uint8_t tx_cmd[2])
     Delay_us(RegulatorStartupTime_us);
   }  
 }
+#endif
 
 /**
 *******************************************************************************
@@ -358,16 +360,16 @@ void adBms2950ReadData(uint8_t tIC, cell_asic_2950 *ic, uint8_t cmd_arg[2], DATA
       case AccCr:
         adBms2950_read_acc_ivbat_testbench(tIC, ic, type);
         break;
-      case AccVbat:
-        adBms2950_read_acc_ivbat_testbench(tIC, ic, type);
-        break;
       default:
-        printf("Unsupported 2950 Read type: %d\n", type);
+        //requires access to IO mutex?
+        printf("Unsupported 2950 Read type for testbench: %d\n", type);
         exit(EXIT_FAILURE);
         break;
     }
   #endif
 }
+
+#ifndef TESTBENCH
 /**
 *******************************************************************************
 * Function: adBms2950WriteData
@@ -509,6 +511,7 @@ void adBms2950WriteData(uint8_t tIC, cell_asic_2950 *ic, uint8_t cmd_arg[2], DAT
   spiWriteData(tIC, cmd_arg, &write_buffer[0]);
   free(write_buffer);
 }
+#endif
 
 /**
 *******************************************************************************
@@ -529,6 +532,7 @@ void adBms2950WriteData(uint8_t tIC, cell_asic_2950 *ic, uint8_t cmd_arg[2], DAT
 *
 *******************************************************************************
 */
+#ifndef TESTBENCH
 uint32_t adBms2950PollAdc(uint8_t tIC, cell_asic_2950 *ic, uint8_t tx_cmd[2])
 {
   volatile uint32_t pladc_count = 0;
@@ -553,6 +557,7 @@ uint32_t adBms2950PollAdc(uint8_t tIC, cell_asic_2950 *ic, uint8_t tx_cmd[2])
   stopTimer(); 
   return(pladc_count);
 }
+#endif
 
 /**
 *******************************************************************************

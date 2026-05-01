@@ -18,6 +18,7 @@ Agreement.
 #include "adBms2950Driver.h"
 #include "adBms2950_TESTBENCH.h"
 
+#ifndef TESTBENCH
 /**
  * @brief Header for functional test cases
  */
@@ -74,7 +75,7 @@ void adBms2950_reset_cmd_count(uint8_t tIC, cell_asic_2950 *ic)
     ic[cic].cccrc.cal_cmd_cntr =0;
   }
 }
-
+#endif
 /**
  * @brief Helper function to configure clrflag register data
  */
@@ -223,9 +224,7 @@ void adBms2950_init_config(uint8_t tIC, cell_asic_2950 *ic)
     ic[cic].tx_cfgb.gpio3c    = (GPIOxC)PULL_DOWN_OFF;
     ic[cic].tx_cfgb.gpio4c    = (GPIOxC)PULL_DOWN_OFF;
     
-    #ifdef TESTBENCH
       
-    #endif
   }
 }
 
@@ -236,6 +235,8 @@ void adBms2950_read_acc_ivbat(uint8_t tIC, cell_asic_2950 *ic)
 {
   // Read Current Accumulator Register Group
   adBms2950ReadData(tIC, &ic[0], RDIACC, AccCr, GRP_NONE);
+  #ifndef TESTBENCH
   // Read Battery Voltage Accumulator Group
-  adBms2950ReadData(tIC, &ic[0], RDVBACC, AccVbat, GRP_NONE); 
+  adBms2950ReadData(tIC, &ic[0], RDVBACC, AccVbat, GRP_NONE);
+  #endif 
 }

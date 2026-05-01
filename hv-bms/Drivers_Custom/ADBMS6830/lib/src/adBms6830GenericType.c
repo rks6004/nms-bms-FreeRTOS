@@ -23,13 +23,16 @@ Using the BMS Driver Application can:
 
 */
 #include "adBms6830GenericType.h"
-#include "bms_util.h"
+
 #include <stdint.h>
 
 #ifdef TESTBENCH
 #include "adBms6830_TESTBENCH.h"
+#include "bms_util.h"
+#include "main.h"
 #endif
 
+#ifndef TESTBENCH
 /**
 *******************************************************************************
 * Function: spiSendCmd
@@ -57,6 +60,7 @@ void spiSendCmd6830(uint8_t tx_cmd[2])
   spiWriteBytes(4, &cmd[0]);
   adBmsCsHigh();
 }
+#endif
 
 /**
 *******************************************************************************
@@ -325,11 +329,15 @@ void adBms6830ReadData(uint8_t tIC, cell_asic_6830 *ic, uint8_t cmd_arg[2], TYPE
         adBms6830_read_aux_voltages_testbench(tIC, ic, group);        
         break;
       default:
-        printf("Unrecognized 6830 Read type: %d\n", type);
+        xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
+        printf("Unrecognized 6830 Read type for testbench: %d\n", type);
         exit(EXIT_FAILURE);
+        xSemaphoreTake(ioMutexHandle);
     }
   #endif
 }
+
+#ifndef TESTBENCH
 /**
 *******************************************************************************
 * Function: adBms6830WriteData
@@ -446,6 +454,7 @@ void adBms6830WriteData(uint8_t tIC, cell_asic_6830 *ic, uint8_t cmd_arg[2], TYP
   spiWriteData(tIC, cmd_arg, &write_buffer[0]);	
   free(write_buffer);
 }
+#endif
 
 /**
 *******************************************************************************
@@ -464,6 +473,7 @@ void adBms6830WriteData(uint8_t tIC, cell_asic_6830 *ic, uint8_t cmd_arg[2], TYP
 *
 *******************************************************************************
 */
+#ifndef TESTBENCH
 uint32_t adBmsPollAdc(uint8_t tx_cmd[2])
 {
   uint32_t conv_count = 0;
@@ -487,6 +497,7 @@ uint32_t adBmsPollAdc(uint8_t tx_cmd[2])
   stopTimer();
   return(conv_count);
 }
+#endif
 
 /**
 *******************************************************************************
@@ -511,6 +522,7 @@ uint32_t adBmsPollAdc(uint8_t tx_cmd[2])
 *
 *******************************************************************************
 */
+#ifndef TESTBENCH
 void adBms6830_Adcv
 (
 RD rd,
@@ -525,6 +537,7 @@ OW_C_S owcs
   cmd[1] = (cont<<7)+(dcp<<4)+(rstf<<2)+(owcs & 0x03) + 0x60;
   spiSendCmd6830(cmd);
 }
+#endif
 
 /**
 *******************************************************************************
@@ -545,6 +558,7 @@ OW_C_S owcs
 *
 *******************************************************************************
 */
+#ifndef TESTBENCH
 void adBms6830_Adsv
 (
 CONT cont,
@@ -557,6 +571,7 @@ OW_C_S owcs
   cmd[1] = (cont<<7)+(dcp<<4)+(owcs &0x03) + 0x68;
   spiSendCmd6830(cmd);
 }
+#endif
 
 /**
 *******************************************************************************
@@ -577,6 +592,7 @@ OW_C_S owcs
 *
 *******************************************************************************
 */
+#ifndef TESTBENCH
 void adBms6830_Adax
 (
 OW_AUX owaux, 							
@@ -589,6 +605,8 @@ CH ch
   cmd[1] = (pup << 7) + (((ch >>4)&0x01)<<6) + (ch & 0x0F) + 0x10;
   spiSendCmd6830(cmd);
 }
+#endif
+
 /**
 *******************************************************************************
 * Function: adBms6830_Adax2
@@ -604,6 +622,7 @@ CH ch
 *
 *******************************************************************************
 */
+#ifndef TESTBENCH
 void adBms6830_Adax2
 (
 CH ch
@@ -614,6 +633,7 @@ CH ch
   cmd[1] = (ch & 0x0F);
   spiSendCmd6830(cmd);
 }
+#endif
 
 /** @}*/
 /** @}*/

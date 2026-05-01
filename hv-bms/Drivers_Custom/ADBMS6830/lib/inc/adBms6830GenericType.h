@@ -21,14 +21,23 @@ and its licensor.
 #ifndef __adBmsGenericType_H
 #define __adBmsGenericType_H
 
+#ifndef TESTBENCH
 #include "mcuWrapper.h"
+#endif
 #include "adBms6830ParseCreate.h"
 #include "adBmsUtility.h"
 
+#ifndef TESTBENCH
 void spiSendCmd6830(uint8_t tx_cmd[2]);
+#endif
 void adBms6830ReadData(uint8_t tIC, cell_asic_6830 *ic, uint8_t cmd_arg[2], TYPE type, GRP group);
+
+#ifndef TESTBENCH
 void adBms6830WriteData(uint8_t tIC, cell_asic_6830 *ic, uint8_t cmd_arg[2], TYPE type, GRP group);
 uint32_t adBmsPollAdc(uint8_t tx_cmd[2]);
+#endif
+
+#ifndef TESTBENCH
 void adBms6830_Adcv
 (
   RD rd,
@@ -56,7 +65,10 @@ void adBms6830_Adax2
 (
   CH ch
 );
+#endif
+
+/** @}*/
+/** @}*/
 
 #endif
-/** @}*/
 /** @}*/

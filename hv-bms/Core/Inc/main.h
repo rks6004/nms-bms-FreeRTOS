@@ -84,7 +84,16 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+SemaphoreHandle_t bmsMutexHandle;
+SemaphoreHandle_t ioMutexHandle;
+TimerHandle_t faultLatchTimerHandle;
 
+#ifdef TESTBENCH
+extern EventGroupHandle_t testbench_evt_id;
+#endif
+
+// Flag to keep track of charging enabled
+EventGroupHandle_t charging_evt_id;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -117,6 +126,7 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#ifndef TESTBENCH
 #define SPI1_CS_Pin GPIO_PIN_4
 #define SPI1_CS_GPIO_Port GPIOA
 #define CHARGING_ENABLE_Pin GPIO_PIN_6
@@ -131,7 +141,7 @@ void Error_Handler(void);
 #define CHARGING_POWER_GPIO_Port GPIOC
 #define Heartbeat_Pin GPIO_PIN_9
 #define Heartbeat_GPIO_Port GPIOB
-
+#endif
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
