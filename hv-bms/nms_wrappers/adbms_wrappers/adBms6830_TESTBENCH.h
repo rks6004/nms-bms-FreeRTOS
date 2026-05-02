@@ -83,7 +83,7 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
 
 void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP group);
 
-
+void adBms6830_populate_cell_temps_testbench(uint8_t tIC, cell_asic_6830* ic);
 
 
 #endif //header guard

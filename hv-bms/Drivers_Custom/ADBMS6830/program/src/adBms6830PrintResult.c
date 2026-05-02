@@ -1072,7 +1072,11 @@ void printMenu()
 float getVoltage(int data)
 {
     float voltage_float; //voltage in Volts
+    #ifdef TESTBENCH
+    voltage_float = (data / 1000.0f);
+    #else
     voltage_float = ((data + 10000) * 0.000150);
+    #endif
     return voltage_float;
 }
 

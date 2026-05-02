@@ -108,7 +108,7 @@
     taskENTER_CRITICAL();                                                                          \
     bmsFault();                                                                                    \ 
     taskEXIT_CRITICAL();                                                                           \
-    xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);                                                  \
+    xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);                                                     \
     printf("Fault detected at SEGMENT: %d\n", ic);                                                 \
     xSemaphoreGive(ioMutexHandle);                                                                 \
   } while (0);
@@ -510,13 +510,14 @@ void adBms6830_cell_ov_uv_check(void)
     for (int i = 0; i < 16; i++)
     {
       voltage = getVoltage(ic[curr_ic].acell.ac_codes[i]);
-
       // OV
+
       if (voltage > MAX_CELL_VOLTAGE)
       {
         SET_FAULT_SIG(OV, curr_ic);
         bmsFault();
         #ifdef TESTBENCH
+        printf("cell OV @ voltage: %f\n", voltage);
         xEventGroupSetBits(testbench_evt_id, VOLTAGE_ERROR_BITS);
         #endif
       }
@@ -527,6 +528,7 @@ void adBms6830_cell_ov_uv_check(void)
         SET_FAULT_SIG(UV, curr_ic);
         bmsFault();
         #ifdef TESTBENCH
+        printf("cell UV @ voltage: %f\n", voltage);
         xEventGroupSetBits(testbench_evt_id, VOLTAGE_ERROR_BITS);
         #endif
       }
@@ -553,11 +555,12 @@ void adBms6830_cell_ot_ut_check(void)
     for (int temp = 0; temp < (AUX - 2); temp++)
     {
       temperature = ic[curr_ic].cell_temperatures.cell_temps[temp];
-
+      //printf("Parsed temp of %f deg C\n", temperature);
       // OT
       if (temperature > MAX_TEMP)
       {
         SET_FAULT_SIG(OT, curr_ic);
+        printf("aux OT @ temperature: %f\n", temperature);
         bmsFault();
         #ifdef TESTBENCH
         xEventGroupSetBits(testbench_evt_id, TEMP_ERROR_BITS);
@@ -568,6 +571,7 @@ void adBms6830_cell_ot_ut_check(void)
       if (temperature < MIN_TEMP && temperature > -50.0)
       {
         SET_FAULT_SIG(UT, curr_ic);
+        printf("aux UT @ temperature: %f\n", temperature);
         bmsFault();
         #ifdef TESTBENCH
         xEventGroupSetBits(testbench_evt_id, TEMP_ERROR_BITS);
@@ -600,6 +604,7 @@ void adbms2950_pack_oc_check(void)
     #endif
     taskEXIT_CRITICAL();
     #ifdef TESTBENCH
+    printf("pack OC @ current: %f\n", current);
     xEventGroupSetBits(testbench_evt_id, CURRENT_ERROR_BITS);
     bmsFault();
     #endif
@@ -614,6 +619,8 @@ void adbms2950_pack_oc_check(void)
   */
 void checkBMSFaults(void)
 {
+   xEventGroupWaitBits(testbench_datastream_ready, TESTBENCH_DATASTREAMS_READY_BITS, 
+                      pdFALSE, pdTRUE, portMAX_DELAY);
   /* Infinite loop */
   if (xSemaphoreTake(bmsMutexHandle, pdMS_TO_TICKS(10)))
   {
@@ -901,6 +908,7 @@ void dischargingTask(void *argument)
                         pdFALSE,
                         pdTRUE,
                         portMAX_DELAY);
+    
     if (dischargingJustEnabled == DISCHARGE_JUST_ENABLED)
     {
       if (xSemaphoreTake(bmsMutexHandle, pdMS_TO_TICKS(10)))
@@ -949,11 +957,14 @@ void dischargingTask(void *argument)
       #ifndef TESTBENCH
       // Start auxiliary voltage measurements
       adBms6830_start_aux_voltage_measurment(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
-      #endif
       // Read auxiliary voltages for thermistors
       adBms6830_read_aux_voltages(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
       // Convert thermistor voltage to temperature
       adBms6830_populate_cell_temps(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
+
+      #else
+        adBms6830_populate_cell_temps_testbench(ADBMS_6830_IC_NUM, &ADBMS_6830_IC[0]);
+      #endif
 #if (ADBMS_2950_IC_NUM > 0)
       // Read pack voltage and current from ADBMS2950
       adBms2950_read_acc_ivbat(ADBMS_2950_IC_NUM, &ADBMS_2950_IC[0]);
@@ -1157,7 +1168,14 @@ void mainTask(void *argument)
                                        pdFALSE,
                                        NULL,
                                        bmsFaultHandle);
-  
+  #ifdef TESTBENCH
+    xTaskCreate(testbench_task,
+              "testbench_task",
+              configMINIMAL_STACK_SIZE * 2,
+              NULL,
+              PRIORITY_LOW,
+              NULL);
+  #endif
   
   #ifndef TESTBENCH
     xTaskCreate(bmsDataCanTxTask,
@@ -1180,23 +1198,18 @@ void mainTask(void *argument)
               NULL,
               PRIORITY_LOW,
               NULL);
-  #ifdef TESTBENCH
-    xTaskCreate(testbench_task,
-              "testbench_task",
-              configMINIMAL_STACK_SIZE * 2,
-              NULL,
-              PRIORITY_LOW,
-              NULL);
-    testbench_init();
-  #endif
   
+  #ifndef TESTBENCH
   for (;;)
   {
-    #ifndef TESTBENCH
     HAL_GPIO_TogglePin(Heartbeat_GPIO_Port, Heartbeat_Pin);
-    #endif
-    vTaskDelay(pdMS_TO_TICKS(1000));
   }
+  #else
+    vTaskDelay(pdMS_TO_TICKS(EVENT_TIMEOUT));
+    xEventGroupWaitBits(testbench_evt_id, expected_test_bits, pdFALSE, pdTRUE, portMAX_DELAY);
+    printf("Exited!\n");
+    vTaskDelete(NULL);
+  #endif
 }
 
 /**
@@ -1212,7 +1225,12 @@ int main(void)
   #endif
   peripheralsInit();
   #ifdef TESTBENCH
+  testbench_datastream_ready = xEventGroupCreate();
+  testbench_evt_id = xEventGroupCreate();
+
   testbench_init();
+  xEventGroupWaitBits(testbench_datastream_ready, TESTBENCH_DATASTREAMS_READY_BITS, 
+                      pdFALSE, pdTRUE, portMAX_DELAY);
   for (int i = 0; i < ADBMS_6830_IC_NUM; i++) {
     characteristic_6830[i].ic_data = &ADBMS_6830_IC[i];
   }

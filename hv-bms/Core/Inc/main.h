@@ -92,8 +92,10 @@ extern SemaphoreHandle_t bmsMutexHandle;
 extern TimerHandle_t faultLatchTimerHandle;
 
 #ifdef TESTBENCH
-extern EventGroupHandle_t testbench_evt_id;
 extern SemaphoreHandle_t ioMutexHandle;
+extern EventGroupHandle_t testbench_datastream_ready;
+extern EventGroupHandle_t testbench_evt_id;
+extern EventBits_t expected_test_bits;
 #endif
 
 // Flag to keep track of charging enabled

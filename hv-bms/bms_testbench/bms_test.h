@@ -15,13 +15,17 @@
 
 //test stream defines
 #define TEST_STREAM_TIMING_RESOLUTION 50 //in ms
-#define TEST_STREAM_MAX_LENGTH_MS 120000 //also in ms, = 2 min
+#define TEST_STREAM_MAX_LENGTH_MS 3000 //also in ms, = 2 min
 
 //event defines for testbench
-#define VOLTAGE_ERROR_BITS 0x01
-#define CURRENT_ERROR_BITS 0x02
-#define TEMP_ERROR_BITS 0x04
-#define PEC_ERROR_BITS 0x08
+#define VOLTAGE_ERROR_BITS 0x01U
+#define CURRENT_ERROR_BITS 0x02U
+#define TEMP_ERROR_BITS 0x04U
+#define PEC_ERROR_BITS 0x08U
+
+#define TESTBENCH_DATASTREAMS_READY_BITS 0x01
+
+#define NUM_TEST_DIMS 4 //V, C, T, PEC
 
 
 typedef enum VOLTAGE_STATE {

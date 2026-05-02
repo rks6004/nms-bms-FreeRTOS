@@ -29,6 +29,10 @@ emulated_adbms_2950 characteristic_2950[ADBMS_2950_IC_NUM];
 extern EventGroupHandle_t charging_evt_id;
 
 EventGroupHandle_t testbench_evt_id;
+EventGroupHandle_t testbench_datastream_ready;
+
+EventBits_t expected_test_bits = 1 << (NUM_TEST_DIMS + 1);
+
 
 extern SemaphoreHandle_t ioMutexHandle;
 
@@ -46,15 +50,8 @@ void get_test_filename(char* datapoint, char* full_filename) {
 
 void testbench_init(void) {
     ioMutexHandle = xSemaphoreCreateMutex();
-    // // Print current working directory
-    // char cwd[256];
-    // if (getcwd(cwd, sizeof(cwd)) != NULL) {
-    //     printf("Current Working Directory: %s\n", cwd);
-    // } else {
-    //     printf("Error getting current working directory\n");
-    // }
-    
-    test_setup = pvPortMalloc(sizeof(test_setup));
+
+    test_setup = pvPortMalloc(sizeof(bms_test_setup));
     #if CHARGING_TEST
         test_setup->charging_testing = true;
     #else
@@ -63,31 +60,32 @@ void testbench_init(void) {
 
     #if VOLTAGE_TEST
         test_setup->voltage_testing = VOLTAGE_TEST;
+        expected_test_bits |= VOLTAGE_ERROR_BITS;
     #else
         test_setup->voltage_testing = VOLT_NORMAL;
     #endif
 
     #if CURRENT_TEST
         test_setup->current_testing = CURRENT_TEST;
+        expected_test_bits |= CURRENT_ERROR_BITS;
     #else
         test_setup->current_testing = CURR_NORMAL;
     #endif
 
     #if TEMP_TEST
         test_setup->temp_testing = TEMP_TEST;
+        expected_test_bits |= TEMP_ERROR_BITS;
     #else
         test_setup->temp_testing = TEMP_NORMAL;
     #endif
 
     #if SIGNAL_TEST
         test_setup->pec_testing = SIGNAL_TEST;
+        expected_test_bits |= PEC_ERROR_BITS;
     #else
         test_setup->pec_testing = PEC_NORMAL;
     #endif
 
-
-    testbench_evt_id = xEventGroupCreate();
-    printf("event created\n");
     xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
     printf("==================================\nSummary of Discharge Testing Criteria (as built):\n==================================\n");
     printf("Temperature Testing: %d\n", test_setup->temp_testing);
@@ -104,17 +102,13 @@ void testbench_init(void) {
     
     char curr_filename[64]; //length should be long enough to handle reasonably-sized tracefile names
     get_test_filename("current", curr_filename);
-    printf("%s\n", curr_filename);
     
     char voltage_filename[64];
     get_test_filename("voltage", voltage_filename);
-        printf("%s\n", voltage_filename);
 
     
     char temp_filename[64];
     get_test_filename("temp", temp_filename);
-        printf("%s\n", temp_filename);
-
 
     //PEC errors generated randomly, no need to grab files
 
@@ -144,6 +138,7 @@ void testbench_init(void) {
         characteristic_6830[ic].voltage_data = voltage_datastream;
         characteristic_6830[ic].signal_behavior = test_setup->pec_testing;
     }
+    xEventGroupSetBits(testbench_datastream_ready, TESTBENCH_DATASTREAMS_READY_BITS);
     return;
 }
 
@@ -155,6 +150,7 @@ void current_monitor(void) {
         pdFALSE,
         pdMS_TO_TICKS(EVENT_TIMEOUT)
     );
+    printf("Done waiting in current_monitor.\n");
     if (current_error_bits & CURRENT_ERROR_BITS) {
         xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
         char* status = test_setup->current_testing > CURR_NORMAL ? "Current Test: OC detected for overcurrent trace, PASS.\n" : "Current Test: OC detected for normal trace, FAIL.\n";
@@ -172,6 +168,7 @@ void voltage_monitor(void) {
         pdFALSE,
         pdMS_TO_TICKS(EVENT_TIMEOUT)
     );
+        printf("Done waiting in voltage_monitor.\n");
     if (voltage_error_bits & VOLTAGE_ERROR_BITS) {
         xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
         char* status = test_setup->voltage_testing > VOLT_NORMAL ? "Voltage Test: OV/UV detected for voltage fault trace, PASS.\n" : "Voltage Test: OV/UV detected for normal trace, FAIL.\n";
@@ -189,6 +186,8 @@ void temp_monitor(void) {
         pdFALSE,
         pdMS_TO_TICKS(EVENT_TIMEOUT)
     );
+        printf("Done waiting in temp_monitor.\n");
+
     if (temp_error_bits & TEMP_ERROR_BITS) {
         xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
         char* status = test_setup->temp_testing > TEMP_NORMAL ? "Temperature Test: OT detected for temperature fault trace, PASS.\n" : "Temperature Test: OT detected for normal trace, FAIL.\n";
@@ -206,6 +205,8 @@ void signal_integrity_monitor(void) {
         pdFALSE,
         pdMS_TO_TICKS(EVENT_TIMEOUT)
     );
+        printf("Done waiting in PEC_monitor\n.");
+
     if (signal_error_bits & PEC_ERROR_BITS) {
         xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
         char* status = test_setup->pec_testing > PEC_NORMAL ? "Signal Integrity Test: PEC error detected for interference trace, PASS.\n" : "Signal Integrity Test: PEC error detected for normal trace, FAIL.\n";
@@ -217,7 +218,7 @@ void signal_integrity_monitor(void) {
 
 int get_vehicle_testbench_data(char* filepath, testbench_datastream* datastream){
     xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
-    printf("File being parsed: %s\n", filepath);
+    // printf("File being parsed: %s\n", filepath);
     FILE* fptr;
     fptr = fopen(filepath, "r");
     if (fptr != NULL && datastream != NULL) {
@@ -226,11 +227,10 @@ int get_vehicle_testbench_data(char* filepath, testbench_datastream* datastream)
         while (fgets(line, MAX_SIZE_PER_DATASTREAM_LINE, fptr) != NULL) {
             char* timestamp_field = strtok(line, ",");
             char* value_field = strtok(NULL, ",\n\r"); // strip carriage return and newline
-            printf("Parsed: %s, %s\n", timestamp_field, value_field);
+            // printf("Parsed: %s, %s\n", timestamp_field, value_field);
             if (timestamp_field != NULL && value_field != NULL) {
                 // Bounds check to prevent buffer overflow
                 if (counter >= (TEST_STREAM_MAX_LENGTH_MS / TEST_STREAM_TIMING_RESOLUTION)) {
-                    printf("Warning: datastream buffer full, stopping at %d entries\n", counter);
                     break;
                 }
                 datastream->timestamps[counter] = (uint32_t)(atoi(timestamp_field));
@@ -239,7 +239,6 @@ int get_vehicle_testbench_data(char* filepath, testbench_datastream* datastream)
             }
             
         }
-        printf("Parsed all lines for %s.\n", filepath);
         fclose(fptr);
     }
     else {
@@ -250,14 +249,7 @@ int get_vehicle_testbench_data(char* filepath, testbench_datastream* datastream)
     return EXIT_SUCCESS;
 }
 
-void testbench_exit(void* argument) {
-    xEventGroupWaitBits(testbench_evt_id, 
-                        (TEMP_ERROR_BITS | VOLTAGE_ERROR_BITS | CURRENT_ERROR_BITS | PEC_ERROR_BITS),
-                        pdFALSE,
-                        pdTRUE,
-                        portMAX_DELAY);
-    
-    
+void testbench_exit() {
     // Free current_datastream (all ICs reference the same pointer)
     if (characteristic_2950[0].current_data != NULL) {
         testbench_datastream* current_data = characteristic_2950[0].current_data;
@@ -274,7 +266,6 @@ void testbench_exit(void* argument) {
             characteristic_2950[ic].current_data = NULL;
         }
     }
-    
     // Free voltage_datastream (all ICs reference the same pointer)
     if (characteristic_6830[0].voltage_data != NULL) {
         testbench_datastream* voltage_data = characteristic_6830[0].voltage_data;
@@ -291,7 +282,6 @@ void testbench_exit(void* argument) {
             characteristic_6830[ic].voltage_data = NULL;
         }
     }
-    
     // Free temp_datastream (all ICs reference the same pointer)
     if (characteristic_6830[0].temp_data != NULL) {
         testbench_datastream* temp_data = characteristic_6830[0].temp_data;
@@ -308,8 +298,6 @@ void testbench_exit(void* argument) {
             characteristic_6830[ic].temp_data = NULL;
         }
     }
-
-    vTaskDelete(NULL);
 }
 
 void testbench_task(void* argument) {
@@ -338,10 +326,8 @@ void testbench_task(void* argument) {
             NULL,
             PRIORITY_LOW,
             NULL);
-    xTaskCreate((TaskFunction_t)testbench_exit,
-        "testbenchExitTask",
-        2048,
-        NULL,
-        PRIORITY_LOW,
-        NULL);
+    vTaskDelay(pdMS_TO_TICKS(TEST_STREAM_MAX_LENGTH_MS)); //allows for all traces to conclude to make sure all errors were flagged
+    xEventGroupSetBits(testbench_evt_id, 1 << (NUM_TEST_DIMS + 1));
+    testbench_exit();
+    vTaskDelete(NULL);
 }

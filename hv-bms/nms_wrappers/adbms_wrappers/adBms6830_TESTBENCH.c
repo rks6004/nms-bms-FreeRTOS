@@ -131,4 +131,11 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
 
 
 
-
+void adBms6830_populate_cell_temps_testbench(uint8_t tIC, cell_asic_6830* ic) {
+    uint32_t data_timer = pdTICKS_TO_MS(xTaskGetTickCount()) % TEST_STREAM_MAX_LENGTH_MS; //datastream will loop if not terminated when EOF of datastream reached
+    uint32_t data_index = (data_timer / TEST_STREAM_TIMING_RESOLUTION);
+    for (uint8_t curr_ic = 0; curr_ic < tIC; curr_ic++) 
+    {
+        
+    }    
+}
