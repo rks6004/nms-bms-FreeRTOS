@@ -28,11 +28,13 @@ static inline bool probability_check(int percent) {return rand() < ((percent * R
  
 //test values parsing average for each segment cell
 void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP group) {
+    //printf("polling 6830 voltage.\n");
     uint32_t data_timer = pdTICKS_TO_MS(xTaskGetTickCount()) % TEST_STREAM_MAX_LENGTH_MS; //datastream will loop if not terminated when EOF of datastream reached
     uint32_t data_index = (data_timer / TEST_STREAM_TIMING_RESOLUTION);
     for (uint8_t curr_ic = 0; curr_ic < tIC; curr_ic++) 
     {
         int32_t test_voltage = characteristic_6830->voltage_data->values[data_index];
+        //printf("Set voltage: %d\n", test_voltage);
         if (test_voltage > INT16_MAX) {
             test_voltage = INT16_MAX; //ceiling reading for 6830 register datatype
         }
@@ -40,6 +42,7 @@ void adBms6830_read_avgcell_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, 
         for (int cell = 0; cell < CELL; cell++) {
             int16_t indiv_test_voltage = test_voltage;
             indiv_test_voltage -= (rand() % 100); //fuzzes cell voltages mildly
+            //printf("Set voltage: %d\n", indiv_test_voltage);
             altered_voltages[cell] = indiv_test_voltage;
         }
         if (group != ALL_GRP && group != F) {
@@ -132,10 +135,16 @@ void adBms6830_read_aux_voltages_testbench(uint8_t tIC, cell_asic_6830 *ic, GRP 
 
 
 void adBms6830_populate_cell_temps_testbench(uint8_t tIC, cell_asic_6830* ic) {
+    //printf("polling 6830 temps.\n");
     uint32_t data_timer = pdTICKS_TO_MS(xTaskGetTickCount()) % TEST_STREAM_MAX_LENGTH_MS; //datastream will loop if not terminated when EOF of datastream reached
     uint32_t data_index = (data_timer / TEST_STREAM_TIMING_RESOLUTION);
     for (uint8_t curr_ic = 0; curr_ic < tIC; curr_ic++) 
     {
-        
+        int32_t recorded_temp = characteristic_6830->temp_data->values[data_index]; //temp stored in mC
+        for (uint8_t temp = 0; temp < AUX-2; temp++) {
+            float temp_adjusted = ((float)(recorded_temp - (rand() % 100))) / 1000.0f;
+            ic[curr_ic].cell_temperatures.cell_temps[temp] = temp_adjusted;
+            //printf("Set temp: %f\n", temp_adjusted);
+        }
     }    
 }

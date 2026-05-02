@@ -972,8 +972,10 @@ void dischargingTask(void *argument)
 
       // Check Cell PEC Errors
       checkAcellPEC();
+      #ifndef TESTBENCH
       // Check Temp PEC Errors
       checkAuxPEC();
+      #endif
       // Send cell voltage data over CAN
       adBms6830_get_voltage_data();
       // Send cell temperature data over CAN

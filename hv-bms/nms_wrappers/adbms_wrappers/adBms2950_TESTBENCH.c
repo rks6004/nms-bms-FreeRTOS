@@ -26,6 +26,7 @@ uint32_t register_2950_value_from_voltage(float voltage, cell_asic_2950 *ic) {
 }
 
 void adBms2950_read_acc_ivbat_testbench(uint8_t tIC, cell_asic_2950 *ic, DATA_TYPE type) {
+    //printf("polling 2950.\n");
     uint32_t data_timer = pdTICKS_TO_MS(xTaskGetTickCount()) % TEST_STREAM_MAX_LENGTH_MS; //datastream will loop if not terminated when EOF of datastream reached
     uint32_t data_index = (data_timer / TEST_STREAM_TIMING_RESOLUTION);
     //through init'ing in main.c, all cell_asic_2950 and cell_asic_6830 structs are linked to their characteristic counterparts by reference 
@@ -33,6 +34,7 @@ void adBms2950_read_acc_ivbat_testbench(uint8_t tIC, cell_asic_2950 *ic, DATA_TY
         if (type == AccCr) 
         {
             int32_t curr_value = characteristic_2950[curr_ic].current_data->values[data_index];
+            //printf("Current parsed as: %d\n", curr_value);
             ic[curr_ic].iacc.i1acc = register_2950_value_from_current(((float)(curr_value)/1000.0f), ic);
 
             switch (characteristic_2950[curr_ic].signal_behavior)
@@ -59,7 +61,7 @@ void adBms2950_read_acc_ivbat_testbench(uint8_t tIC, cell_asic_2950 *ic, DATA_TY
         }
         else {
             xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
-            printf("Unhandled 2950 polling type, exiting application: %d\n", characteristic_2950[curr_ic].signal_behavior);
+            //printf("Unhandled 2950 polling type, exiting application: %d\n", characteristic_2950[curr_ic].signal_behavior);
             xSemaphoreGive(ioMutexHandle);
             exit(EXIT_FAILURE);
         }

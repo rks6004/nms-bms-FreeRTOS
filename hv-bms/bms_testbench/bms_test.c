@@ -95,7 +95,7 @@ void testbench_init(void) {
     printf("===============KEY================\nTEMP_NORMAL = 1, TEMP_OT = 2\n");
     printf("CURR_NORMAL = 1, CURR_OC = 2\n");
     printf("VOLT_NORMAL = 1, VOLT_OV = 2, VOLT_UV = 3\n");
-    printf("PEC_NORMAL = 1, PEC_SLIGHT_INTERFERENCE = 2, PEC_HEAVY_INTERFERENCE = 3\n==================================\n");
+    printf("PEC_NORMAL = 1, PEC_SLIGHT_INTERFERENCE = 2, PEC_HEAVY_INTERFERENCE = 3\n==================================\n");    
     xSemaphoreGive(ioMutexHandle);
 
     
@@ -156,6 +156,11 @@ void current_monitor(void) {
         char* status = test_setup->current_testing > CURR_NORMAL ? "Current Test: OC detected for overcurrent trace, PASS.\n" : "Current Test: OC detected for normal trace, FAIL.\n";
         printf("%s", status);
         xSemaphoreGive(ioMutexHandle);
+    } else {
+        xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
+        char* status = test_setup->current_testing > CURR_NORMAL ? "Current Test: No OC detected for overcurrent trace, FAIL.\n" : "Current Test: No OC detected for normal trace, PASS.\n";
+        printf("%s", status);
+        xSemaphoreGive(ioMutexHandle);
     }
     vTaskDelete(NULL);
 }
@@ -172,6 +177,11 @@ void voltage_monitor(void) {
     if (voltage_error_bits & VOLTAGE_ERROR_BITS) {
         xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
         char* status = test_setup->voltage_testing > VOLT_NORMAL ? "Voltage Test: OV/UV detected for voltage fault trace, PASS.\n" : "Voltage Test: OV/UV detected for normal trace, FAIL.\n";
+        printf("%s", status);
+        xSemaphoreGive(ioMutexHandle);
+    } else {
+        xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
+        char* status = test_setup->voltage_testing > VOLT_NORMAL ? "Voltage Test: No OV/UV detected for voltage fault trace, FAIL.\n" : "Voltage Test: No OV/UV detected for normal trace, PASS.\n";
         printf("%s", status);
         xSemaphoreGive(ioMutexHandle);
     }
@@ -193,6 +203,11 @@ void temp_monitor(void) {
         char* status = test_setup->temp_testing > TEMP_NORMAL ? "Temperature Test: OT detected for temperature fault trace, PASS.\n" : "Temperature Test: OT detected for normal trace, FAIL.\n";
         printf("%s", status);
         xSemaphoreGive(ioMutexHandle);
+    } else {
+        xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
+        char* status = test_setup->temp_testing > TEMP_NORMAL ? "Temperature Test: No OT detected for temperature fault trace, FAIL.\n" : "Temperature Test: No OT detected for normal trace, PASS.\n";
+        printf("%s", status);
+        xSemaphoreGive(ioMutexHandle);
     }
     vTaskDelete(NULL);
 }
@@ -210,6 +225,11 @@ void signal_integrity_monitor(void) {
     if (signal_error_bits & PEC_ERROR_BITS) {
         xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
         char* status = test_setup->pec_testing > PEC_NORMAL ? "Signal Integrity Test: PEC error detected for interference trace, PASS.\n" : "Signal Integrity Test: PEC error detected for normal trace, FAIL.\n";
+        printf("%s", status);
+        xSemaphoreGive(ioMutexHandle);
+    } else {
+        xSemaphoreTake(ioMutexHandle, IO_TIMEOUT);
+        char* status = test_setup->pec_testing > PEC_NORMAL ? "Signal Integrity Test: No PEC error detected for interference trace, FAIL.\n" : "Signal Integrity Test: No PEC error detected for normal trace, PASS.\n";
         printf("%s", status);
         xSemaphoreGive(ioMutexHandle);
     }
